@@ -1,0 +1,19 @@
+# Node modules
+node_modules
+
+# Build output
+.next
+out
+dist
+
+# Static assets
+public
+
+# VSCode settings
+.vscode
+
+# Log files
+*.log
+
+# Misc
+.DS_Store
