@@ -37,6 +37,14 @@ export type Recept = {
   updatedAt?: string;
 };
 
+// *** Toegevoegd: Input type voor recepten (zonder id, ownerId, createdAt, etc.) ***
+export type ReceptInput = Omit<
+  Recept,
+  'id' | 'ownerId' | 'createdAt' | 'updatedAt' | 'favoritedBy'
+> & {
+  favoritedBy?: string[]; // mag leeg zijn bij aanmaken
+};
+
 // 4. WeekmenuDag (één dag in het weekmenu)
 export type WeekmenuDag = {
   dag: string; // bv. "maandag"
@@ -89,5 +97,4 @@ export type Groep = {
   aangemaaktOp?: string;
 };
 
-// Exporteer types zodat je overal consistent kunt importeren
-export type {};
+// Je hoeft hier geen lege export meer te doen

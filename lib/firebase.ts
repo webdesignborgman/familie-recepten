@@ -121,12 +121,9 @@ export const logout = async (): Promise<void> => {
 // Recepten toevoegen (type safe)
 // ===================
 
-import type { RecipeFormValues } from '@/components/recepten/RecipeFormModal'; // <--- Gebruik je eigen type!
+import type { ReceptInput } from '@/types/index';
 
-export async function addRecipeToFirestore(
-  recipe: RecipeFormValues,
-  userId: string
-): Promise<void> {
+export async function addRecipeToFirestore(recipe: ReceptInput, userId: string): Promise<void> {
   await addDoc(collection(db, 'recepten'), {
     ...recipe,
     ownerId: userId,

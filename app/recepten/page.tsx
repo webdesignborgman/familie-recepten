@@ -1,31 +1,16 @@
 'use client';
 
-import { useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import RecipesHero from '@/components/recepten/RecipesHero';
-import RecipeFormModal from '@/components/recepten/RecipeFormModal';
-import { addRecipeToFirestore } from '@/lib/firebase';
 
 export default function Page() {
   const { user, loading } = useAuth();
-  const [isFormOpen, setIsFormOpen] = useState(false);
 
   if (loading) return <div>Laden...</div>;
 
   return (
     <div>
-      <RecipesHero onAddRecipe={() => setIsFormOpen(true)} />
-
-      {/* Modaal recept-formulier */}
-      <RecipeFormModal
-        open={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={async values => {
-          if (!user) return;
-          await addRecipeToFirestore(values, user.uid); // let op: user.id vs user.uid
-          setIsFormOpen(false);
-        }}
-      />
+      <RecipesHero />
 
       {user ? (
         <div>{/* TODO: hier straks SearchFilterBar, StatsBar, RecipesGrid, etc */}</div>
