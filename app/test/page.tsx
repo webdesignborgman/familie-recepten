@@ -1,7 +1,24 @@
+import { Button } from '@/components/ui/button';
+// Voorbeeld met een icoon (optioneel):
+import { Plus } from 'lucide-react';
+
 export default function Page() {
   return (
     <div className="max-w-2xl mx-auto py-10 px-4 space-y-10">
       <h1 className="text-3xl font-bold mb-2 text-foreground">
+        <section>
+          <h2 className="text-2xl font-bold mb-4 text-foreground">🔘 Shadcn Button Varianten</h2>
+          <div className="flex gap-4 flex-wrap items-center">
+            <Button>Default</Button>
+            <Button variant="secondary">Secondary</Button>
+            <Button variant="destructive">Destructive</Button>
+            <Button variant="outline">Outline</Button>
+            <Button disabled>Disabled</Button>
+            <Button size="icon" aria-label="Add">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </section>
         🎨 Familie Recepten – Kleuren & Gradients Test
       </h1>
       <p className="text-muted">

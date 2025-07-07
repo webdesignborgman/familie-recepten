@@ -5,13 +5,15 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   UserCredential,
 } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 import { toast } from 'sonner';
 
-// Voeg || "" toe aan elke env var voor typesafety
+// Typesafe config met fallback (""), zoals jij had
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
@@ -28,40 +30,89 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const storage = getStorage(app);
 
-/** Google login (met feedback) */
-export const loginWithGoogle = async (): Promise<UserCredential | void> => {
+/** Login met Google (met feedback) */
+export const loginWithGoogle = async (): Promise<UserCredential | undefined> => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     toast.success(`Welkom ${result.user.displayName || ''}!`);
     return result;
-  } catch (error: unknown) {
-    toast.error('Inloggen met Google mislukt. Probeer opnieuw!');
-    console.error(error);
+  } catch (caught: unknown) {
+    let message = 'Inloggen met Google mislukt. Probeer opnieuw!';
+    if (caught instanceof Error) {
+      message = caught.message;
+    }
+    toast.error(message);
+    console.error(caught);
+    return undefined;
   }
 };
 
-/** Email/password login (met feedback) */
+/** Login met email/wachtwoord (met feedback) */
 export const loginWithEmail = async (
   email: string,
   password: string
-): Promise<UserCredential | void> => {
+): Promise<UserCredential | undefined> => {
   try {
     const result = await signInWithEmailAndPassword(auth, email, password);
-    toast.success(`Welkom terug!`);
+    toast.success('Welkom terug!');
     return result;
-  } catch (error: unknown) {
-    toast.error('Ongeldige gegevens. Probeer opnieuw!');
-    console.error(error);
+  } catch (caught: unknown) {
+    let message = 'Ongeldige gegevens. Probeer opnieuw!';
+    if (caught instanceof Error) {
+      message = caught.message;
+    }
+    toast.error(message);
+    console.error(caught);
+    return undefined;
+  }
+};
+
+/** Registreren met email/wachtwoord (met feedback) */
+export const registerWithEmail = async (
+  email: string,
+  password: string
+): Promise<UserCredential | undefined> => {
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    toast.success('Account aangemaakt, welkom!');
+    return result;
+  } catch (caught: unknown) {
+    let message = 'Registratie mislukt. Probeer een ander e-mailadres.';
+    if (caught instanceof Error) {
+      message = caught.message;
+    }
+    toast.error(message);
+    console.error(caught);
+    return undefined;
+  }
+};
+
+/** Stuur wachtwoord-reset e-mail (met feedback) */
+export const sendPasswordReset = async (email: string): Promise<void> => {
+  try {
+    await firebaseSendPasswordResetEmail(auth, email);
+    toast.success('Check je inbox voor het reset-linkje.');
+  } catch (caught: unknown) {
+    let message = 'Kon geen reset-link versturen. Probeer opnieuw.';
+    if (caught instanceof Error) {
+      message = caught.message;
+    }
+    toast.error(message);
+    console.error(caught);
   }
 };
 
 /** Uitloggen (met feedback) */
-export const logout = async () => {
+export const logout = async (): Promise<void> => {
   try {
     await signOut(auth);
     toast.success('Je bent uitgelogd.');
-  } catch (error: unknown) {
-    toast.error('Uitloggen mislukt!');
-    console.error(error);
+  } catch (caught: unknown) {
+    let message = 'Uitloggen mislukt!';
+    if (caught instanceof Error) {
+      message = caught.message;
+    }
+    toast.error(message);
+    console.error(caught);
   }
 };
