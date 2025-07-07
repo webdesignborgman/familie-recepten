@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 // Importeer je eigen type als je die hebt:
-import type { Recept } from '@/types/firestore-schema-familie-recepten';
+import type { Recept } from '@/types/index';
 
 export function useRecipes(userId?: string) {
   const [recipes, setRecipes] = useState<Recept[]>([]);

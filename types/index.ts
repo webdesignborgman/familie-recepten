@@ -1,7 +1,5 @@
 // types/index.ts
 
-// ------ Gebruikte Types ------
-
 // 1. Gebruiker (User)
 export type User = {
   id: string;
@@ -11,22 +9,32 @@ export type User = {
   groepen?: string[]; // id's van groepen waar deze user in zit
 };
 
-// 2. Categorieën (optioneel: importeer als type uit categorieen.ts)
-import { Categorie } from './categorieen';
+// 2. Categorieën (optioneel: importeer als type uit categorieen.ts, of gewoon string[])
+export type Categorie = string; // Of import { Categorie } from './categorieen'
 
 // 3. Recept
+export type Ingredient = {
+  naam: string;
+  hoeveelheid: string;
+};
+
 export type Recept = {
   id: string;
   titel: string;
-  subtitel?: string;
+  ondertitel?: string; // consistent met RecipeForm en firestore schema
   categorieen: Categorie[]; // meerdere categorieën per recept
-  ingredienten: string[];
-  stappen: string[];
-  fotoURL?: string;
+  ingredienten: Ingredient[]; // nu gestructureerd!
+  bereidingswijze: string[]; // stappen als array van string (consistent met RecipeForm)
+  afbeeldingUrl?: string; // consistent met rest van je project (liever Engelse naam)
+  beschrijving?: string;
   privacy: 'prive' | 'publiek' | 'gedeeld';
-  eigenaar: string; // user id
-  gedeeldMet?: string[]; // user-ids of groeps-ids
-  aangemaaktOp?: string; // timestamp/ISO string
+  favoritedBy?: string[]; // userId's die dit recept als favoriet hebben
+  ownerId: string; // wie het recept gemaakt heeft (voor Firestore-consistentie)
+  groupId?: string; // als het bij een groep hoort
+  sharedWith?: string[]; // voor gedeelde recepten (groepen/users)
+  notities?: { [userId: string]: string }; // optioneel, eigen notities per user
+  createdAt?: string; // timestamp/ISO string of Firestore Timestamp (voor sorting)
+  updatedAt?: string;
 };
 
 // 4. WeekmenuDag (één dag in het weekmenu)
@@ -35,37 +43,42 @@ export type WeekmenuDag = {
   datum: string; // bv. "05/06"
   dienst: string; // bv. "A", "B", "C+", etc.
   maaltijd: string; // vrije tekst, 2-3 regels mogelijk
+  receptenIds?: string[]; // optioneel, als je ooit een koppeling wilt met recepten
+  notitie?: string; // optioneel, notitie per dag
 };
 
 // 5. Weekmenu
 export type Weekmenu = {
   id: string;
-  dagen: WeekmenuDag[];
-  eigenaar: string; // user id
+  ownerId: string; // consistent met Recept
+  groupId?: string;
+  startDatum: string; // bv. "05/06" (eerste zaterdag)
+  dagen: WeekmenuDag[]; // altijd 9 items
   privacy: 'prive' | 'gedeeld' | 'publiek';
-  gedeeldMet?: string[]; // user-ids of groeps-ids
-  aangemaaktOp?: string; // timestamp/ISO string
+  sharedWith?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 // 6. Boodschappen-item
 export type BoodschappenItem = {
-  id: string;
   naam: string;
-  gekocht: boolean; // afgevinkt/in de kar?
-  aangemaaktDoor: string; // user id
-  categorie?: string; // optioneel, handig voor sorteren/groeperen
-  hoeveelheid?: string; // bv. "2 stuks", "500g", etc.
-  eenheid?: string; // optioneel, bv. "g", "ml"
+  aantal: number;
+  eenheid?: string; // bv. "g", "ml", "stuks"
+  checked: boolean; // afgevinkt/in de kar?
 };
 
 // 7. Boodschappenlijst
 export type BoodschappenLijst = {
   id: string;
+  ownerId: string;
+  groupId?: string;
+  naam: string;
   items: BoodschappenItem[];
-  eigenaar: string; // user id
   privacy: 'prive' | 'gedeeld' | 'publiek';
-  gedeeldMet?: string[]; // user-ids of groeps-ids
-  aangemaaktOp?: string; // timestamp/ISO string
+  sharedWith?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 // 8. Groep
@@ -76,4 +89,5 @@ export type Groep = {
   aangemaaktOp?: string;
 };
 
-// Je kunt types makkelijk uitbreiden/aanpassen als je meer features toevoegt.
+// Exporteer types zodat je overal consistent kunt importeren
+export type {};
