@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import {
   getAuth,
   GoogleAuthProvider,
@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 import { toast } from 'sonner';
+// Importeer NIET { db } in ditzelfde bestand!
 
 // Typesafe config met fallback (""), zoals jij had
 const firebaseConfig = {
@@ -30,7 +31,10 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const storage = getStorage(app);
 
-/** Login met Google (met feedback) */
+// ===================
+// Auth functies
+// ===================
+
 export const loginWithGoogle = async (): Promise<UserCredential | undefined> => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
@@ -47,7 +51,6 @@ export const loginWithGoogle = async (): Promise<UserCredential | undefined> => 
   }
 };
 
-/** Login met email/wachtwoord (met feedback) */
 export const loginWithEmail = async (
   email: string,
   password: string
@@ -67,7 +70,6 @@ export const loginWithEmail = async (
   }
 };
 
-/** Registreren met email/wachtwoord (met feedback) */
 export const registerWithEmail = async (
   email: string,
   password: string
@@ -87,7 +89,6 @@ export const registerWithEmail = async (
   }
 };
 
-/** Stuur wachtwoord-reset e-mail (met feedback) */
 export const sendPasswordReset = async (email: string): Promise<void> => {
   try {
     await firebaseSendPasswordResetEmail(auth, email);
@@ -102,7 +103,6 @@ export const sendPasswordReset = async (email: string): Promise<void> => {
   }
 };
 
-/** Uitloggen (met feedback) */
 export const logout = async (): Promise<void> => {
   try {
     await signOut(auth);
@@ -116,3 +116,23 @@ export const logout = async (): Promise<void> => {
     console.error(caught);
   }
 };
+
+// ===================
+// Recepten toevoegen (type safe)
+// ===================
+
+import type { RecipeFormValues } from '@/components/recepten/RecipeFormModal'; // <--- Gebruik je eigen type!
+
+export async function addRecipeToFirestore(
+  recipe: RecipeFormValues,
+  userId: string
+): Promise<void> {
+  await addDoc(collection(db, 'recepten'), {
+    ...recipe,
+    ownerId: userId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    favoritedBy: [],
+    sharedWith: recipe.privacy === 'gedeeld' ? recipe.sharedWith || [] : [],
+  });
+}

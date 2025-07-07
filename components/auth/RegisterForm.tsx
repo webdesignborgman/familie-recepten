@@ -2,13 +2,13 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { registerWithEmail, loginWithGoogle } from '../../lib/firebase'; // <-- pas eventueel aan!
+import { registerWithEmail, loginWithGoogle } from '../../lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, Loader2 } from 'lucide-react';
-import GoogleSvgIcon from '@/components/ui/GoogleSvgIcon';
+import GoogleGIcon from '@/components/ui/GoogleGIcon'; // <-- let op: gewijzigde import!
 import { cn } from '@/lib/utils';
 
 export default function RegisterForm() {
@@ -110,13 +110,20 @@ export default function RegisterForm() {
           </form>
           <Separator className="my-4" />
           <Button
-            variant="outline"
-            className="w-full font-semibold flex items-center gap-2 border bg-white hover:bg-[hsl(31,90%,65%)]/10"
+            type="button"
             onClick={handleGoogle}
             disabled={loading}
-            type="button"
+            className={cn(
+              'w-full flex items-center justify-center gap-3 rounded-xl py-2 px-4 bg-white border border-[hsl(210,100%,56%)] shadow-sm transition hover:shadow-md hover:bg-[hsl(210,100%,92%)]',
+              loading && 'opacity-80 cursor-not-allowed'
+            )}
           >
-            <GoogleSvgIcon className="w-5 h-5" /> Registreren met Google
+            <span className="bg-white rounded-full p-1 flex items-center justify-center border border-[hsl(210,100%,56%)]">
+              <GoogleGIcon className="w-5 h-5" />
+            </span>
+            <span className="font-semibold text-sm text-[hsl(210,100%,56%)]">
+              Registreren met Google
+            </span>
           </Button>
           <p className="mt-4 text-center text-sm">
             Al een account?{' '}

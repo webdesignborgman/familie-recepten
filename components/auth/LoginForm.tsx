@@ -2,13 +2,13 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginWithEmail, loginWithGoogle } from '../../lib/firebase'; // <-- pas eventueel aan!
+import { loginWithEmail, loginWithGoogle } from '../../lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, Loader2 } from 'lucide-react';
-import GoogleSvgIcon from '@/components/ui/GoogleSvgIcon';
+import GoogleGIcon from '@/components/ui/GoogleGIcon';
 import { cn } from '@/lib/utils';
 
 export default function LoginForm() {
@@ -109,14 +109,22 @@ export default function LoginForm() {
             </Button>
           </form>
           <Separator className="my-4" />
+          {/* Hier komt de nieuwe Google button */}
           <Button
-            variant="outline"
-            className="w-full font-semibold flex items-center gap-2 border bg-white hover:bg-[hsl(31,90%,65%)]/10"
+            type="button"
             onClick={handleGoogle}
             disabled={loading}
-            type="button"
+            className={cn(
+              'w-full flex items-center justify-center gap-3 rounded-xl py-2 px-4 bg-white border border-[hsl(210,100%,56%)] shadow-sm transition hover:shadow-md hover:bg-[hsl(210,100%,92%)]',
+              loading && 'opacity-80 cursor-not-allowed'
+            )}
           >
-            <GoogleSvgIcon className="w-5 h-5" /> Login met Google
+            <span className="bg-white rounded-full p-1 flex items-center justify-center border border-[hsl(210,100%,56%)]">
+              <GoogleGIcon className="w-5 h-5" />
+            </span>
+            <span className="font-semibold text-sm text-[hsl(210,100%,56%)]">
+              Inloggen met Google
+            </span>
           </Button>
           <p className="mt-4 text-center text-sm">
             Nog geen account?{' '}
