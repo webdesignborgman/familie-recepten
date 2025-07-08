@@ -21,19 +21,21 @@ export type Ingredient = {
 export type Recept = {
   id: string;
   titel: string;
-  ondertitel?: string; // consistent met RecipeForm en firestore schema
-  categorieen: Categorie[]; // meerdere categorieën per recept
-  ingredienten: Ingredient[]; // nu gestructureerd!
-  bereidingswijze: string[]; // stappen als array van string (consistent met RecipeForm)
-  afbeeldingUrl?: string; // consistent met rest van je project (liever Engelse naam)
+  ondertitel?: string;
+  categorieen: Categorie[];
+  ingredienten: Ingredient[];
+  bereidingswijze: string[];
+  bereidingsTijd: string; // <-- toegevoegd!
+  aantalPersonen: number; // <-- toegevoegd!
+  afbeeldingUrl?: string;
   beschrijving?: string;
   privacy: 'prive' | 'publiek' | 'gedeeld';
-  favoritedBy?: string[]; // userId's die dit recept als favoriet hebben
-  ownerId: string; // wie het recept gemaakt heeft (voor Firestore-consistentie)
-  groupId?: string; // als het bij een groep hoort
-  sharedWith?: string[]; // voor gedeelde recepten (groepen/users)
-  notities?: { [userId: string]: string }; // optioneel, eigen notities per user
-  createdAt?: string; // timestamp/ISO string of Firestore Timestamp (voor sorting)
+  favoritedBy?: string[];
+  ownerId: string;
+  groupId?: string;
+  sharedWith?: string[];
+  notities?: { [userId: string]: string };
+  createdAt?: string;
   updatedAt?: string;
 };
 

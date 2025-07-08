@@ -1,7 +1,14 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    domains: [
+      'firebasestorage.googleapis.com',
+      'images.unsplash.com',
+      // voeg hier meer domeinen toe als je wilt
+    ],
+  },
+  // andere config opties hier...
 };
 
 export default nextConfig;

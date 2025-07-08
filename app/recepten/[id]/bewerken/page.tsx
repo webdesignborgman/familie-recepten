@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db, storage } from '@/lib/firebase';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { addRecipeToFirestore } from '@/lib/firebase';
-import { storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ import * as z from 'zod';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import MultiSelectDropdown from '@/components/ui/MultiSelectDropdown';
+import type { Recept } from '@/types/index';
+import Image from 'next/image';
 
 const recipeSchema = z.object({
   titel: z.string().min(1, 'Titel is verplicht'),
@@ -32,13 +34,11 @@ type RecipeFormData = z.infer<typeof recipeSchema>;
 
 const categorieOpties = ['Ontbijt', 'Lunch', 'Diner', 'Nagerecht', 'Tussendoor', 'Soep', 'Anders'];
 
-// Hulpfunctie: eerste letter hoofdletter, rest klein
+// Hulpfuncties
 function capitalizeFirstLetter(str: string) {
   if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
-
-// Hulpfunctie: elk woord met hoofdletter (Titel)
 function toTitleCase(str: string) {
   return str
     .split(' ')
@@ -46,22 +46,23 @@ function toTitleCase(str: string) {
     .join(' ');
 }
 
-export default function NewRecipePage() {
+export default function EditRecipePage() {
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
+
   const [ingredients, setIngredients] = useState<IngredientInput[]>([
     { naam: '', hoeveelheid: '' },
   ]);
   const [instructions, setInstructions] = useState<string[]>(['']);
-  const [loading, setLoading] = useState(false);
-
-  // Image upload states
+  const [loading, setLoading] = useState(true);
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Voor automatisch focussen van inputs:
   const ingredientRefs = useRef<HTMLInputElement[]>([]);
 
+  // React Hook Form (leeg bij init)
   const form = useForm<RecipeFormData>({
     resolver: zodResolver(recipeSchema),
     defaultValues: {
@@ -76,6 +77,39 @@ export default function NewRecipePage() {
     },
   });
 
+  // Laad bestaand recept
+  useEffect(() => {
+    if (!id || !user) return;
+
+    const fetchRecipe = async () => {
+      setLoading(true);
+      const ref = doc(db, 'recepten', id as string);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const data = snap.data() as Recept;
+        form.reset({
+          titel: data.titel,
+          ondertitel: data.ondertitel || '',
+          categorieen: data.categorieen || [],
+          bereidingsTijd: data.bereidingsTijd || '',
+          aantalPersonen: data.aantalPersonen || 1,
+          afbeeldingUrl: data.afbeeldingUrl || '',
+          beschrijving: data.beschrijving || '',
+          privacy: data.privacy as 'prive' | 'publiek',
+        });
+        setIngredients(
+          data.ingredienten?.length ? data.ingredienten : [{ naam: '', hoeveelheid: '' }]
+        );
+        setInstructions(data.bereidingswijze?.length ? data.bereidingswijze : ['']);
+        setPreviewUrl(data.afbeeldingUrl || null);
+      }
+      setLoading(false);
+    };
+
+    fetchRecipe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user]);
+
   // Ingredient handlers
   const addIngredient = () => {
     setIngredients(prev => [...prev, { naam: '', hoeveelheid: '' }]);
@@ -84,25 +118,21 @@ export default function NewRecipePage() {
       ingredientRefs.current[nextIndex]?.focus();
     }, 20);
   };
-
   const removeIngredient = (index: number) => {
     if (ingredients.length === 1) return;
     setIngredients(ingredients.filter((_, i) => i !== index));
   };
-
   const updateIngredient = (index: number, key: 'naam' | 'hoeveelheid', value: string) => {
     const updated = [...ingredients];
     updated[index][key] = value;
     setIngredients(updated);
   };
-
   const handleIngredientNaamKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       ingredientRefs.current[index * 2 + 1]?.focus();
     }
   };
-
   const handleIngredientHoeveelheidKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -126,30 +156,27 @@ export default function NewRecipePage() {
     setInstructions(updated);
   };
 
-  // Handle image select
+  // Image upload
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedImage(file);
       setPreviewUrl(URL.createObjectURL(file));
-    } else {
-      setSelectedImage(null);
-      setPreviewUrl(null);
     }
   };
 
+  // Update recipe in Firestore
   const handleSubmit = async (data: RecipeFormData) => {
     if (!user) {
-      toast.error('Je moet ingelogd zijn om een recept toe te voegen.', { position: 'top-center' });
+      toast.error('Je moet ingelogd zijn om een recept te bewerken.', { position: 'top-center' });
       return;
     }
 
-    // Ingredients: alle namen met hoofdletter
     const filteredIngredients = ingredients
       .filter(i => i.naam.trim() !== '' && i.hoeveelheid.trim() !== '')
       .map(i => ({
         naam: capitalizeFirstLetter(i.naam.trim()),
-        hoeveelheid: i.hoeveelheid.trim(), // hier evt. ook aanpassen?
+        hoeveelheid: i.hoeveelheid.trim(),
       }));
 
     const filteredInstructions = instructions.filter(s => s.trim() !== '');
@@ -165,47 +192,57 @@ export default function NewRecipePage() {
       return;
     }
 
-    setLoading(true);
+    setSubmitLoading(true);
 
-    let imageUrl = '';
+    let imageUrl = previewUrl || '';
     try {
-      // Upload afbeelding naar Firebase Storage indien geselecteerd
+      // Upload afbeelding indien aangepast
       if (selectedImage) {
-        const storageRef = ref(storage, `recepten/${user.uid}/${Date.now()}_${selectedImage.name}`);
-        await uploadBytes(storageRef, selectedImage);
-        imageUrl = await getDownloadURL(storageRef);
+        const sRef = storageRef(
+          storage,
+          `recepten/${user.uid}/${Date.now()}_${selectedImage.name}`
+        );
+        await uploadBytes(sRef, selectedImage);
+        imageUrl = await getDownloadURL(sRef);
       }
 
-      await addRecipeToFirestore(
-        {
-          titel: toTitleCase(data.titel.trim()),
-          ondertitel: data.ondertitel,
-          categorieen: data.categorieen,
-          ingredienten: filteredIngredients,
-          bereidingswijze: filteredInstructions,
-          afbeeldingUrl: imageUrl || '',
-          beschrijving: data.beschrijving,
-          privacy: data.privacy,
-          bereidingsTijd: data.bereidingsTijd, // <-- toegevoegd!
-          aantalPersonen: data.aantalPersonen, // <-- toegevoegd!
-        },
-        user.uid
-      );
+      const updateData = {
+        titel: toTitleCase(data.titel.trim()),
+        ondertitel: data.ondertitel,
+        categorieen: data.categorieen,
+        ingredienten: filteredIngredients,
+        bereidingswijze: filteredInstructions,
+        afbeeldingUrl: imageUrl,
+        beschrijving: data.beschrijving,
+        privacy: data.privacy,
+        bereidingsTijd: data.bereidingsTijd,
+        aantalPersonen: data.aantalPersonen,
+        updatedAt: new Date().toISOString(),
+      };
 
-      toast.success('Recept succesvol toegevoegd!');
-      router.push('/recepten');
+      await updateDoc(doc(db, 'recepten', id as string), updateData);
+      toast.success('Recept succesvol bijgewerkt!');
+      router.push(`/recepten/${id}`);
     } catch (err) {
       toast.error('Fout bij opslaan. Probeer het opnieuw.');
       console.error(err);
     }
-    setLoading(false);
+    setSubmitLoading(false);
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[90vh]">
+        <span className="text-muted-foreground">Laden...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center items-center min-h-[90vh] bg-gradient-hero py-12">
       <div className="w-full max-w-4xl rounded-2xl shadow-2xl border-none bg-gradient-to-tr from-white via-[hsl(142,69%,58%)]/10 to-[hsl(210,100%,92%)] p-8">
         <h1 className="text-[hsl(142,76%,36%)] text-2xl mb-6 font-bold tracking-tight text-center">
-          Nieuw Recept Toevoegen
+          Recept Bewerken
         </h1>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-10" autoComplete="off">
           <div className="grid md:grid-cols-2 gap-8">
@@ -217,7 +254,7 @@ export default function NewRecipePage() {
                 <Input
                   {...form.register('titel')}
                   placeholder="Bijv. Spaghetti Carbonara"
-                  disabled={loading}
+                  disabled={submitLoading}
                 />
                 {form.formState.errors.titel && (
                   <div className="text-destructive text-xs">
@@ -231,7 +268,7 @@ export default function NewRecipePage() {
                 <Input
                   {...form.register('ondertitel')}
                   placeholder="Korte beschrijving van het gerecht"
-                  disabled={loading}
+                  disabled={submitLoading}
                 />
                 {form.formState.errors.ondertitel && (
                   <div className="text-destructive text-xs">
@@ -250,7 +287,7 @@ export default function NewRecipePage() {
                       value={field.value}
                       onChange={field.onChange}
                       options={categorieOpties}
-                      disabled={loading}
+                      disabled={submitLoading}
                     />
                   )}
                 />
@@ -267,7 +304,7 @@ export default function NewRecipePage() {
                   <Input
                     {...form.register('bereidingsTijd')}
                     placeholder="Bijv. 30 min"
-                    disabled={loading}
+                    disabled={submitLoading}
                   />
                   {form.formState.errors.bereidingsTijd && (
                     <div className="text-destructive text-xs">
@@ -281,7 +318,7 @@ export default function NewRecipePage() {
                     type="number"
                     min="1"
                     {...form.register('aantalPersonen', { valueAsNumber: true })}
-                    disabled={loading}
+                    disabled={submitLoading}
                   />
                   {form.formState.errors.aantalPersonen && (
                     <div className="text-destructive text-xs">
@@ -297,10 +334,18 @@ export default function NewRecipePage() {
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
-                  disabled={loading}
+                  disabled={submitLoading}
                 />
                 {previewUrl && (
-                  <img src={previewUrl} alt="Preview" className="rounded-lg max-h-40 my-2 shadow" />
+                  <div className="rounded-lg max-h-40 my-2 shadow relative w-full h-40">
+                    <Image
+                      src={previewUrl}
+                      alt="Preview"
+                      fill
+                      className="object-cover rounded-lg"
+                      sizes="320px"
+                    />
+                  </div>
                 )}
               </div>
               {/* Beschrijving */}
@@ -310,7 +355,7 @@ export default function NewRecipePage() {
                   {...form.register('beschrijving')}
                   placeholder="Beschrijf het gerecht..."
                   className="min-h-[100px] resize-none"
-                  disabled={loading}
+                  disabled={submitLoading}
                 />
                 {form.formState.errors.beschrijving && (
                   <div className="text-destructive text-xs">
@@ -328,7 +373,7 @@ export default function NewRecipePage() {
                       value="prive"
                       checked={form.watch('privacy') === 'prive'}
                       onChange={() => form.setValue('privacy', 'prive')}
-                      disabled={loading}
+                      disabled={submitLoading}
                     />
                     Privé
                   </label>
@@ -338,7 +383,7 @@ export default function NewRecipePage() {
                       value="publiek"
                       checked={form.watch('privacy') === 'publiek'}
                       onChange={() => form.setValue('privacy', 'publiek')}
-                      disabled={loading}
+                      disabled={submitLoading}
                     />
                     Publiek
                   </label>
@@ -356,7 +401,7 @@ export default function NewRecipePage() {
                     variant="outline"
                     size="sm"
                     onClick={addIngredient}
-                    disabled={loading}
+                    disabled={submitLoading}
                   >
                     <Plus className="w-4 h-4 mr-1" /> Toevoegen
                   </Button>
@@ -369,7 +414,7 @@ export default function NewRecipePage() {
                         value={ingredient.naam}
                         onChange={e => updateIngredient(index, 'naam', e.target.value)}
                         className="flex-1"
-                        disabled={loading}
+                        disabled={submitLoading}
                         ref={el => {
                           ingredientRefs.current[index * 2] = el!;
                         }}
@@ -380,7 +425,7 @@ export default function NewRecipePage() {
                         value={ingredient.hoeveelheid}
                         onChange={e => updateIngredient(index, 'hoeveelheid', e.target.value)}
                         className="w-32"
-                        disabled={loading}
+                        disabled={submitLoading}
                         ref={el => {
                           ingredientRefs.current[index * 2 + 1] = el!;
                         }}
@@ -392,7 +437,7 @@ export default function NewRecipePage() {
                           variant="outline"
                           size="sm"
                           onClick={() => removeIngredient(index)}
-                          disabled={loading}
+                          disabled={submitLoading}
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -410,7 +455,7 @@ export default function NewRecipePage() {
                     variant="outline"
                     size="sm"
                     onClick={addInstruction}
-                    disabled={loading}
+                    disabled={submitLoading}
                   >
                     <Plus className="w-4 h-4 mr-1" /> Stap toevoegen
                   </Button>
@@ -426,7 +471,7 @@ export default function NewRecipePage() {
                         value={instruction}
                         onChange={e => updateInstruction(index, e.target.value)}
                         className="flex-1 min-h-[80px] resize-none"
-                        disabled={loading}
+                        disabled={submitLoading}
                       />
                       {instructions.length > 1 && (
                         <Button
@@ -434,7 +479,7 @@ export default function NewRecipePage() {
                           variant="outline"
                           size="sm"
                           onClick={() => removeInstruction(index)}
-                          disabled={loading}
+                          disabled={submitLoading}
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -450,17 +495,17 @@ export default function NewRecipePage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.push('/recepten')}
-              disabled={loading}
+              onClick={() => router.push(`/recepten/${id}`)}
+              disabled={submitLoading}
             >
               Annuleren
             </Button>
             <Button
               type="submit"
               className="bg-gradient-primary hover:opacity-90"
-              disabled={loading}
+              disabled={submitLoading}
             >
-              {loading ? 'Opslaan...' : 'Recept Opslaan'}
+              {submitLoading ? 'Opslaan...' : 'Wijzigingen Opslaan'}
             </Button>
           </div>
         </form>

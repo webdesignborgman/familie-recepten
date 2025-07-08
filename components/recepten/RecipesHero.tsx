@@ -35,7 +35,7 @@ export default function RecipesHero() {
   return (
     <section className="py-16 bg-gradient-hero">
       <div className="container mx-auto px-4 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">Onze Recepten Collectie</h1>
+        <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">Mijn Recepten Collectie</h1>
         <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
           Ontdek heerlijke gerechten voor elke gelegenheid. Van snelle doordeweekse maaltijden tot
           feestelijke diners.
