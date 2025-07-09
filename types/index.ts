@@ -91,12 +91,12 @@ export type BoodschappenLijst = {
   updatedAt?: string;
 };
 
-// 8. Groep
+// 8. Groep (voor gedeelde recepten, weekmenu's, etc.)
+
 export type Groep = {
   id: string;
   naam: string;
-  leden: string[]; // user ids
-  aangemaaktOp?: string;
+  leden: string[]; // userId's
+  eigenaar: string; // userId van de eigenaar/beheerder
+  aangemaaktOp: string; // of Firestore Timestamp
 };
-
-// Je hoeft hier geen lege export meer te doen

@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     domains: [
       'firebasestorage.googleapis.com',
       'images.unsplash.com',
+      'lh3.googleusercontent.com',
       // voeg hier meer domeinen toe als je wilt
     ],
   },

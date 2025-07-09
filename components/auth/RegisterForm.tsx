@@ -2,16 +2,18 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { registerWithEmail, loginWithGoogle } from '../../lib/firebase';
+import { registerWithEmail, loginWithGoogle, ensureUserDoc } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Mail, Lock, Loader2 } from 'lucide-react';
-import GoogleGIcon from '@/components/ui/GoogleGIcon'; // <-- let op: gewijzigde import!
+import { Mail, Lock, User, Loader2 } from 'lucide-react';
+import GoogleGIcon from '@/components/ui/GoogleGIcon';
 import { cn } from '@/lib/utils';
+import { updateProfile, reload } from 'firebase/auth';
 
 export default function RegisterForm() {
+  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -23,9 +25,21 @@ export default function RegisterForm() {
     setLoading(true);
     setError(null);
     try {
-      await registerWithEmail(email, password);
-      router.push('/weekmenu');
-    } catch (caught) {
+      const userCredential = await registerWithEmail(email, password);
+      if (userCredential && userCredential.user) {
+        if (displayName) {
+          await updateProfile(userCredential.user, { displayName });
+          await reload(userCredential.user);
+        }
+        await ensureUserDoc({
+          uid: userCredential.user.uid,
+          displayName: displayName,
+          email: userCredential.user.email,
+          photoURL: userCredential.user.photoURL,
+        });
+      }
+      router.push('/recepten');
+    } catch (caught: unknown) {
       let message = 'Er ging iets mis';
       if (caught instanceof Error) {
         message = caught.message;
@@ -46,10 +60,19 @@ export default function RegisterForm() {
     setLoading(true);
     setError(null);
     try {
-      await loginWithGoogle();
-      router.push('/weekmenu');
+      const userCredential = await loginWithGoogle();
+      if (userCredential && userCredential.user) {
+        await reload(userCredential.user); // avatar altijd up-to-date
+        await ensureUserDoc({
+          uid: userCredential.user.uid,
+          displayName: userCredential.user.displayName,
+          email: userCredential.user.email,
+          photoURL: userCredential.user.photoURL,
+        });
+      }
+      router.push('/recepten');
     } catch {
-      setError('Google login mislukt');
+      setError('Google registratie mislukt');
     }
     setLoading(false);
   };
@@ -65,6 +88,19 @@ export default function RegisterForm() {
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleRegister} autoComplete="on">
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(142,76%,36%)] w-5 h-5 opacity-90 pointer-events-none" />
+              <Input
+                type="text"
+                placeholder="Naam"
+                autoComplete="name"
+                required
+                value={displayName}
+                onChange={e => setDisplayName(e.target.value)}
+                className="pl-10 bg-white"
+                aria-label="Naam"
+              />
+            </div>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(210,100%,56%)] w-5 h-5 opacity-90 pointer-events-none" />
               <Input
@@ -128,7 +164,7 @@ export default function RegisterForm() {
           <p className="mt-4 text-center text-sm">
             Al een account?{' '}
             <a
-              href="/auth/login"
+              href="/login"
               className="text-[hsl(210,100%,56%)] font-medium underline underline-offset-2 hover:text-[hsl(142,76%,36%)]"
             >
               Inloggen

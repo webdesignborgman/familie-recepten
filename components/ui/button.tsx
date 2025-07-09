@@ -16,6 +16,7 @@ const buttonVariants = cva(
         outline:
           'bg-transparent border border-primary text-primary hover:bg-primary-light hover:text-background',
         gradient: 'bg-gradient-hero text-background hover:brightness-110',
+        ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {

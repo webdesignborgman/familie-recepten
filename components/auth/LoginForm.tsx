@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginWithEmail, loginWithGoogle } from '../../lib/firebase';
+import { loginWithEmail, loginWithGoogle, ensureUserDoc } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, Loader2 } from 'lucide-react';
 import GoogleGIcon from '@/components/ui/GoogleGIcon';
 import { cn } from '@/lib/utils';
+import { reload } from 'firebase/auth';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -23,9 +24,18 @@ export default function LoginForm() {
     setLoading(true);
     setError(null);
     try {
-      await loginWithEmail(email, password);
-      router.push('/weekmenu');
-    } catch (caught) {
+      const userCredential = await loginWithEmail(email, password);
+      if (userCredential && userCredential.user) {
+        // reload is optioneel bij email login, meestal niet nodig (geen photoURL)
+        await ensureUserDoc({
+          uid: userCredential.user.uid,
+          displayName: userCredential.user.displayName,
+          email: userCredential.user.email,
+          photoURL: userCredential.user.photoURL,
+        });
+      }
+      router.push('/recepten');
+    } catch (caught: unknown) {
       let message = 'Er ging iets mis';
       if (caught instanceof Error) {
         message = caught.message;
@@ -46,8 +56,18 @@ export default function LoginForm() {
     setLoading(true);
     setError(null);
     try {
-      await loginWithGoogle();
-      router.push('/weekmenu');
+      const userCredential = await loginWithGoogle();
+      if (userCredential && userCredential.user) {
+        // Forceer altijd nieuwste Google profiel (voor photoURL)
+        await reload(userCredential.user);
+        await ensureUserDoc({
+          uid: userCredential.user.uid,
+          displayName: userCredential.user.displayName,
+          email: userCredential.user.email,
+          photoURL: userCredential.user.photoURL,
+        });
+      }
+      router.push('/recepten');
     } catch {
       setError('Google login mislukt');
     }
@@ -109,7 +129,6 @@ export default function LoginForm() {
             </Button>
           </form>
           <Separator className="my-4" />
-          {/* Hier komt de nieuwe Google button */}
           <Button
             type="button"
             onClick={handleGoogle}

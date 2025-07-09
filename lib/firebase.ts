@@ -12,7 +12,7 @@ import {
 } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 import { toast } from 'sonner';
-// Importeer NIET { db } in ditzelfde bestand!
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 // Typesafe config met fallback (""), zoals jij had
 const firebaseConfig = {
@@ -30,6 +30,38 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const storage = getStorage(app);
+
+export async function ensureUserDoc(user: {
+  uid: string;
+  displayName: string | null;
+  email: string | null;
+  photoURL?: string | null;
+}) {
+  if (!user.uid || !user.email) return;
+  const userRef = doc(db, 'users', user.uid);
+  const snap = await getDoc(userRef);
+  if (!snap.exists()) {
+    await setDoc(userRef, {
+      displayName: user.displayName ?? '',
+      email: user.email,
+      photoURL: user.photoURL ?? '',
+    });
+  } else {
+    // Update alleen als displayName of photoURL is gewijzigd
+    const data = snap.data();
+    if (data.photoURL !== user.photoURL || data.displayName !== user.displayName) {
+      await setDoc(
+        userRef,
+        {
+          ...data,
+          displayName: user.displayName ?? '',
+          photoURL: user.photoURL ?? '',
+        },
+        { merge: true }
+      );
+    }
+  }
+}
 
 // ===================
 // Auth functies

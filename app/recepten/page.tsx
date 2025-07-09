@@ -12,14 +12,15 @@ import {
   onSnapshot,
   DocumentData,
   QueryDocumentSnapshot,
+  where,
+  getDocs,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Recept } from '@/types/index';
+import type { Recept, Groep } from '@/types/index';
 
 // Helper: type-safe mapping van Firestore doc naar Recept
 function mapFirestoreRecipe(doc: QueryDocumentSnapshot<DocumentData>): Recept {
   const data = doc.data();
-
   return {
     id: doc.id,
     titel: data.titel,
@@ -47,7 +48,6 @@ export default function Page() {
   const [recipes, setRecipes] = useState<Recept[]>([]);
   const [loadingRecipes, setLoadingRecipes] = useState(true);
 
-  // Laad recepten uit Firestore als ingelogd
   useEffect(() => {
     if (!user) {
       setRecipes([]);
@@ -56,52 +56,59 @@ export default function Page() {
     }
     setLoadingRecipes(true);
 
-    const col = collection(db, 'recepten');
-    const q = query(col, orderBy('titel'));
+    async function fetchRecipesMetGroepen() {
+      // Gebruik user! zodat TypeScript weet: user is altijd aanwezig in deze closure
+      const groepenSnap = await getDocs(
+        query(collection(db, 'groepen'), where('leden', 'array-contains', user!.uid))
+      );
+      const groepsledenIds = Array.from(
+        new Set(
+          groepenSnap.docs
+            .map(doc => (doc.data() as Groep).leden)
+            .flat()
+            .filter((uid): uid is string => typeof uid === 'string')
+        )
+      );
 
-    const unsub = onSnapshot(q, snapshot => {
-      const result = snapshot.docs
-        .map(mapFirestoreRecipe)
-        .filter(recipe => recipe.privacy === 'publiek' || recipe.ownerId === user.uid);
-      setRecipes(result);
-      setLoadingRecipes(false);
+      const unsub = onSnapshot(query(collection(db, 'recepten'), orderBy('titel')), snapshot => {
+        const alle = snapshot.docs.map(mapFirestoreRecipe);
+        const recipesSet = new Map<string, Recept>();
+
+        // Eigen recepten
+        alle.filter(r => r.ownerId === user!.uid).forEach(r => recipesSet.set(r.id, r));
+        // Publieke recepten
+        alle.filter(r => r.privacy === 'publiek').forEach(r => recipesSet.set(r.id, r));
+        // Prive recepten van groepsleden (niet jezelf)
+        alle
+          .filter(
+            r =>
+              r.privacy === 'prive' && groepsledenIds.includes(r.ownerId) && r.ownerId !== user!.uid
+          )
+          .forEach(r => recipesSet.set(r.id, r));
+
+        setRecipes(Array.from(recipesSet.values()));
+        setLoadingRecipes(false);
+      });
+      return unsub;
+    }
+
+    let unsub: (() => void) | undefined;
+
+    fetchRecipesMetGroepen().then(u => {
+      unsub = u;
     });
 
-    return () => unsub();
+    return () => {
+      if (unsub) unsub();
+    };
   }, [user]);
 
   if (loading) return <div>Laden...</div>;
 
-  return (
-    <div>
-      <RecipesHero />
-
-      {user ? (
-        <div className="max-w-6xl mx-auto px-4 py-10">
-          {loadingRecipes ? (
-            <div className="text-center text-muted-foreground py-10">Recepten laden...</div>
-          ) : recipes.length === 0 ? (
-            <div className="text-center text-muted-foreground py-10">Geen recepten gevonden.</div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {recipes.map(recipe => (
-                <RecipeCard
-                  key={recipe.id}
-                  title={recipe.titel}
-                  subtitle={recipe.ondertitel || ''}
-                  category={recipe.categorieen[0] || 'Onbekend'}
-                  cookingTime={recipe.bereidingsTijd}
-                  servings={recipe.aantalPersonen}
-                  image={recipe.afbeeldingUrl}
-                  isPrivate={recipe.privacy === 'prive'}
-                  onClick={() => (window.location.href = `/recepten/${recipe.id}`)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        // Niet ingelogd: demo/teaser + call-to-action
+  if (!user) {
+    return (
+      <div>
+        <RecipesHero />
         <div>
           <h1 className="text-2xl font-bold mb-4">Familie Recepten (demo)</h1>
           <div className="mb-4">
@@ -131,7 +138,36 @@ export default function Page() {
             </p>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <RecipesHero />
+      <div className="max-w-6xl mx-auto px-4 py-10">
+        {loadingRecipes ? (
+          <div className="text-center text-muted-foreground py-10">Recepten laden...</div>
+        ) : recipes.length === 0 ? (
+          <div className="text-center text-muted-foreground py-10">Geen recepten gevonden.</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {recipes.map(recipe => (
+              <RecipeCard
+                key={recipe.id}
+                title={recipe.titel}
+                subtitle={recipe.ondertitel || ''}
+                category={recipe.categorieen[0] || 'Onbekend'}
+                cookingTime={recipe.bereidingsTijd}
+                servings={recipe.aantalPersonen}
+                image={recipe.afbeeldingUrl}
+                isPrivate={recipe.privacy === 'prive'}
+                onClick={() => (window.location.href = `/recepten/${recipe.id}`)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
