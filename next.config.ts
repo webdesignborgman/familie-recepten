@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
       'firebasestorage.googleapis.com',
       'images.unsplash.com',
       'lh3.googleusercontent.com',
+      'familie-recepten.vercel.app',
       // voeg hier meer domeinen toe als je wilt
     ],
   },
