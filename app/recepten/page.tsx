@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import RecipesHero from '@/components/recepten/RecipesHero';
 import RecipeCard from '@/components/recepten/RecipeCard';
@@ -15,11 +15,12 @@ import {
   QueryDocumentSnapshot,
   where,
   getDocs,
+  doc,
+  updateDoc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Recept, Groep } from '@/types/index';
 
-// Helper: type-safe mapping van Firestore doc naar Recept
 function mapFirestoreRecipe(doc: QueryDocumentSnapshot<DocumentData>): Recept {
   const data = doc.data();
   return {
@@ -49,9 +50,23 @@ export default function Page() {
   const [recipes, setRecipes] = useState<Recept[]>([]);
   const [loadingRecipes, setLoadingRecipes] = useState(true);
 
-  // Filter state
   const [zoekterm, setZoekterm] = useState('');
   const [geselecteerdeCategorieen, setGeselecteerdeCategorieen] = useState<string[]>([]);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+
+  // Favorieten logica
+  const toggleFavorite = useCallback(
+    async (id: string, newState: boolean) => {
+      if (!user) return;
+      const refDoc = doc(db, 'recepten', id);
+      const recipe = recipes.find(r => r.id === id);
+      if (!recipe) return;
+      const current = recipe.favoritedBy || [];
+      const updated = newState ? [...current, user.uid] : current.filter(x => x !== user.uid);
+      await updateDoc(refDoc, { favoritedBy: updated });
+    },
+    [recipes, user]
+  );
 
   useEffect(() => {
     if (!user) {
@@ -59,104 +74,80 @@ export default function Page() {
       setLoadingRecipes(false);
       return;
     }
+
     setLoadingRecipes(true);
+    let unsubscribe: () => void;
 
-    let unsubscribe: (() => void) | undefined;
-
-    async function fetchWithGroups() {
-      const groepQ = query(collection(db, 'groepen'), where('leden', 'array-contains', user!.uid));
+    (async () => {
+      const uid = user.uid;
+      // Groepsleden ophalen
+      const groepQ = query(collection(db, 'groepen'), where('leden', 'array-contains', uid));
       const groepSnap = await getDocs(groepQ);
       const groepsledenIds = Array.from(
         new Set(
           groepSnap.docs
-            .map(doc => (doc.data() as Groep).leden)
+            .map(d => (d.data() as Groep).leden)
             .flat()
-            .filter((uid): uid is string => typeof uid === 'string')
+            .filter((x): x is string => typeof x === 'string')
         )
       );
 
+      // Recepten realtime ophalen
       const receptenQ = query(collection(db, 'recepten'), orderBy('titel'));
       unsubscribe = onSnapshot(receptenQ, snap => {
         const alle = snap.docs.map(mapFirestoreRecipe);
         const mapRez = new Map<string, Recept>();
 
-        alle.filter(r => r.ownerId === user!.uid).forEach(r => mapRez.set(r.id, r));
+        // Eigen recepten
+        alle.filter(r => r.ownerId === uid).forEach(r => mapRez.set(r.id, r));
+        // Publieke recepten
         alle.filter(r => r.privacy === 'publiek').forEach(r => mapRez.set(r.id, r));
+        // Privé-recepten van groepsleden
         alle
           .filter(
-            r =>
-              r.privacy === 'prive' && groepsledenIds.includes(r.ownerId) && r.ownerId !== user!.uid
+            r => r.privacy === 'prive' && groepsledenIds.includes(r.ownerId) && r.ownerId !== uid
           )
           .forEach(r => mapRez.set(r.id, r));
 
         setRecipes(Array.from(mapRez.values()));
         setLoadingRecipes(false);
       });
-    }
+    })();
 
-    fetchWithGroups();
-
-    return () => {
-      unsubscribe?.();
-    };
+    return () => unsubscribe?.();
   }, [user]);
 
-  const categorieOpties = Array.from(new Set(recipes.flatMap(r => r.categorieen)));
+  // UI state voor filteren
+  if (loading) {
+    return <div className="text-center py-16">Laden...</div>;
+  }
+  if (!user) {
+    return (
+      <div>
+        <RecipesHero />
+        {/* … demo-sectie … */}
+      </div>
+    );
+  }
 
-  // Filteren (clientside)
+  // Filteren (inclusief favorieten)
+  const uid = user.uid;
+  const categorieOpties = Array.from(new Set(recipes.flatMap(r => r.categorieen)));
   const gefilterdeRecipes = recipes.filter(recipe => {
     const q = zoekterm.trim().toLowerCase();
     const matchZoek =
       !zoekterm ||
       recipe.titel.toLowerCase().includes(q) ||
-      (recipe.ondertitel ?? '').toLowerCase().includes(q) ||
+      recipe.ondertitel?.toLowerCase().includes(q) ||
       recipe.ingredienten.some(
         i => i.naam.toLowerCase().includes(q) || i.hoeveelheid.toLowerCase().includes(q)
       );
     const matchCat =
       geselecteerdeCategorieen.length === 0 ||
       recipe.categorieen.some(cat => geselecteerdeCategorieen.includes(cat));
-    return matchZoek && matchCat;
+    const matchFav = !favoritesOnly || (recipe.favoritedBy && recipe.favoritedBy.includes(uid));
+    return matchZoek && matchCat && matchFav;
   });
-
-  if (loading) return <div className="text-center py-16">Laden...</div>;
-
-  if (!user) {
-    return (
-      <div>
-        <RecipesHero />
-        <div className="max-w-2xl mx-auto px-4 py-10">
-          <h1 className="text-2xl font-bold mb-4">Familie Recepten (demo)</h1>
-          <div className="mb-4 space-y-2">
-            <div className="p-4 rounded-xl bg-[hsl(210,100%,92%)]">
-              <strong>Klassieke lasagne</strong>
-              <p className="text-sm text-muted-foreground">
-                Ingrediënten: gehakt, tomaten, bechamelsaus...
-              </p>
-            </div>
-            <div className="p-4 rounded-xl bg-[hsl(31,81%,91%)]">
-              <strong>Vegetarische curry</strong>
-              <p className="text-sm text-muted-foreground">
-                Ingrediënten: kikkererwten, kokosmelk, spinazie...
-              </p>
-            </div>
-          </div>
-          <div className="bg-white p-4 rounded-xl border mt-6 text-center">
-            <p>
-              Maak een gratis account om je eigen familie recepten toe te voegen, te bewaren en te
-              delen!{' '}
-              <a
-                href="/auth/register"
-                className="text-[hsl(210,100%,56%)] font-medium underline underline-offset-2 hover:text-[hsl(142,76%,36%)]"
-              >
-                Maak nu je account aan →
-              </a>
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div>
@@ -164,9 +155,10 @@ export default function Page() {
         filterbar={
           <RecipeFilter
             categories={categorieOpties}
-            onFilter={(search, cats) => {
+            onFilter={(search, cats, favOnly) => {
               setZoekterm(search);
               setGeselecteerdeCategorieen(cats);
+              setFavoritesOnly(favOnly);
             }}
           />
         }
@@ -179,17 +171,20 @@ export default function Page() {
           <div className="text-center text-muted-foreground py-10">Geen recepten gevonden.</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {gefilterdeRecipes.map(recipe => (
+            {gefilterdeRecipes.map(r => (
               <RecipeCard
-                key={recipe.id}
-                title={recipe.titel}
-                subtitle={recipe.ondertitel || ''}
-                category={recipe.categorieen[0] || 'Onbekend'}
-                cookingTime={recipe.bereidingsTijd}
-                servings={recipe.aantalPersonen}
-                image={recipe.afbeeldingUrl}
-                isPrivate={recipe.privacy === 'prive'}
-                onClick={() => (window.location.href = `/recepten/${recipe.id}`)}
+                key={r.id}
+                id={r.id}
+                title={r.titel}
+                subtitle={r.ondertitel || ''}
+                category={r.categorieen[0] || 'Onbekend'}
+                cookingTime={r.bereidingsTijd}
+                servings={r.aantalPersonen}
+                image={r.afbeeldingUrl}
+                isPrivate={r.privacy === 'prive'}
+                isFavorited={r.favoritedBy?.includes(uid) ?? false}
+                onClick={() => (window.location.href = `/recepten/${r.id}`)}
+                onToggleFavorite={toggleFavorite}
               />
             ))}
           </div>

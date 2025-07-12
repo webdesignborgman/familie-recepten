@@ -1,10 +1,14 @@
 'use client';
+
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, Users } from 'lucide-react';
+import { Clock, Users, Heart as HeartIcon } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface RecipeCardProps {
+  id: string;
   title: string;
   subtitle: string;
   category: string;
@@ -12,10 +16,13 @@ interface RecipeCardProps {
   servings: number;
   image?: string;
   isPrivate?: boolean;
+  isFavorited?: boolean;
   onClick?: () => void;
+  onToggleFavorite?: (id: string, newState: boolean) => Promise<void>;
 }
 
 export default function RecipeCard({
+  id,
   title,
   subtitle,
   category,
@@ -23,8 +30,28 @@ export default function RecipeCard({
   servings,
   image,
   isPrivate = false,
+  isFavorited = false,
   onClick,
+  onToggleFavorite,
 }: RecipeCardProps) {
+  const [favorited, setFavorited] = useState(isFavorited);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleFavorite = async () => {
+    if (!onToggleFavorite) return;
+    const next = !favorited;
+    setFavorited(next);
+    setIsLoading(true);
+    try {
+      await onToggleFavorite(id, next);
+      toast.success(next ? 'Toegevoegd aan favorieten!' : 'Verwijderd uit favorieten!');
+    } catch {
+      setFavorited(!next);
+      toast.error('Kon voorkeur niet opslaan.');
+    }
+    setIsLoading(false);
+  };
+
   return (
     <div className="group bg-gradient-card rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-200 border border-border/40 flex flex-col">
       {/* Image section */}
@@ -39,13 +66,35 @@ export default function RecipeCard({
             placeholder="blur"
             blurDataURL="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjZmZmIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiLz4="
             quality={80}
-            priority={false}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-5xl text-primary/20">
             🍽️
           </div>
         )}
+
+        {/* Favorite overlay on image */}
+        {onToggleFavorite && (
+          <button
+            type="button"
+            onClick={handleFavorite}
+            disabled={isLoading}
+            className={`absolute bottom-2 right-2 p-2 rounded-full transition-colors ${
+              favorited ? 'bg-red-100 hover:bg-red-200' : 'bg-white hover:bg-gray-100'
+            } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
+              isLoading ? 'opacity-50 cursor-wait' : ''
+            }`}
+          >
+            <HeartIcon
+              fill={favorited ? 'currentColor' : 'none'}
+              strokeWidth={2}
+              className={`w-5 h-5 transition-transform ${
+                favorited ? 'text-red-500 scale-110' : 'text-gray-400'
+              }`}
+            />
+          </button>
+        )}
+
         {/* Privacy/Public badge */}
         <div className="absolute top-3 left-3">
           <Badge
@@ -55,13 +104,14 @@ export default function RecipeCard({
             {isPrivate ? 'Privé' : 'Publiek'}
           </Badge>
         </div>
-        {/* Categorie badge */}
+        {/* Category badge */}
         <div className="absolute top-3 right-3">
           <Badge variant="outline" className="bg-white/90 backdrop-blur-sm text-xs">
             {category}
           </Badge>
         </div>
       </div>
+
       {/* Content */}
       <div className="bg-white/90 flex-1 flex flex-col p-5 rounded-b-2xl">
         <div className="mb-2">
