@@ -1,49 +1,75 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { WeekmenuCardList } from '@/components/weekmenu/WeekmenuCardList';
+import { Button } from '@/components/ui/button';
+import type { Weekmenu } from '@/types';
 
 export default function WeekmenuPage() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const [weekmenu, setWeekmenu] = useState<Weekmenu | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (loading) return <div>Laden...</div>;
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setWeekmenu(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const fetchWeekmenu = async () => {
+      try {
+        const q = query(collection(db, 'weekmenus'), where('userId', '==', user.uid));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const doc = snap.docs[0];
+          setWeekmenu({
+            id: doc.id,
+            ...(doc.data() as Omit<Weekmenu, 'id'>),
+          });
+        } else {
+          setWeekmenu(null);
+        }
+      } catch (e) {
+        console.error('Fout bij ophalen weekmenu:', e);
+        setWeekmenu(null);
+      }
+      setLoading(false);
+    };
+    fetchWeekmenu();
+  }, [user, authLoading]);
 
-  if (user) {
-    // Ingelogd: echt weekmenu
+  if (authLoading || loading) {
     return (
-      <div>
-        <h1 className="text-2xl font-bold mb-4">Jouw weekmenu</h1>
-        <p>Hier kun je je eigen weekmenu maken en beheren.</p>
-        {/* TODO: Voeg hier je Weekmenu component toe */}
-      </div>
+      <main className="px-4 py-10 text-center">
+        <h1 className="text-3xl font-bold mb-6">Weekmenu</h1>
+        <div>Laden…</div>
+      </main>
     );
   }
 
-  // Niet ingelogd: demo/teaser + call-to-action
+  if (!user || !weekmenu) {
+    return (
+      <main className="max-w-3xl mx-auto py-8 px-4 text-center">
+        <h1 className="text-3xl font-bold mb-6">Weekmenu</h1>
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
+          <p className="mb-4">Je hebt nog geen weekmenu. Maak er één aan!</p>
+          <Button asChild>
+            <a href="/weekmenu/nieuw">Nieuw weekmenu aanmaken</a>
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Weekmenu (demo)</h1>
-      <div className="mb-4">
-        <div className="p-4 rounded-xl bg-[hsl(210,100%,92%)] mb-2">
-          <strong>Maandag:</strong> Stamppot boerenkool
-        </div>
-        <div className="p-4 rounded-xl bg-[hsl(31,81%,91%)] mb-2">
-          <strong>Dinsdag:</strong> Gevulde paprika’s
-        </div>
-        <div className="p-4 rounded-xl bg-[hsl(142,69%,58%)]/20">
-          <strong>Woensdag:</strong> Zalm uit de oven
-        </div>
-      </div>
-      <div className="bg-white p-4 rounded-xl border mt-6">
-        <p>
-          Maak een account om je eigen weekmenu te maken en te delen! <br />
-          <a
-            href="/auth/register"
-            className="text-[hsl(210,100%,56%)] font-medium underline underline-offset-2 hover:text-[hsl(142,76%,36%)]"
-          >
-            Registreren &rarr;
-          </a>
-        </p>
-      </div>
-    </div>
+    <main className="max-w-3xl mx-auto py-8 px-4">
+      <h1 className="text-3xl font-bold mb-6">Weekmenu</h1>
+      <WeekmenuCardList weekmenuId={weekmenu.id} dagen={weekmenu.dagen} />
+    </main>
   );
 }

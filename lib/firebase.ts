@@ -1,5 +1,14 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+  DocumentData,
+} from 'firebase/firestore';
 import {
   getAuth,
   GoogleAuthProvider,
@@ -14,7 +23,11 @@ import { getStorage } from 'firebase/storage';
 import { toast } from 'sonner';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-// Typesafe config met fallback (""), zoals jij had
+import type { ReceptInput, Weekmenu, WeekmenuDag } from '@/types/index';
+
+// ===================
+// Firebase config
+// ===================
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
@@ -31,6 +44,9 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const storage = getStorage(app);
 
+// ===================
+// User document in Firestore
+// ===================
 export async function ensureUserDoc(user: {
   uid: string;
   displayName: string | null;
@@ -153,8 +169,6 @@ export const logout = async (): Promise<void> => {
 // Recepten toevoegen (type safe)
 // ===================
 
-import type { ReceptInput } from '@/types/index';
-
 export async function addRecipeToFirestore(recipe: ReceptInput, userId: string): Promise<void> {
   await addDoc(collection(db, 'recepten'), {
     ...recipe,
@@ -164,4 +178,40 @@ export async function addRecipeToFirestore(recipe: ReceptInput, userId: string):
     favoritedBy: [],
     sharedWith: recipe.privacy === 'gedeeld' ? recipe.sharedWith || [] : [],
   });
+}
+
+// ===================
+// Weekmenu ophalen (type safe)
+// ===================
+
+/**
+ * Haal het weekmenu op voor een specifieke gebruiker
+ * Gebruik dit in server of client components.
+ *
+ * @param userId - het Firebase UID van de gebruiker
+ * @returns Weekmenu of null
+ */
+export async function getWeekmenuForUser(userId?: string): Promise<Weekmenu | null> {
+  // userId mag worden meegegeven (server-side), of uit de client gehaald worden (auth.currentUser)
+  let effectiveUserId = userId;
+
+  // Indien niet meegegeven, probeer userId uit Firebase Auth (client-side!)
+  if (!effectiveUserId && typeof window !== 'undefined') {
+    effectiveUserId = auth.currentUser?.uid ?? undefined;
+  }
+  if (!effectiveUserId) return null;
+
+  const ref = collection(db, 'weekmenus');
+  const q = query(ref, where('userId', '==', effectiveUserId));
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) return null;
+
+  const docSnap = snapshot.docs[0];
+  const data = docSnap.data() as Omit<Weekmenu, 'id'>;
+
+  return {
+    id: docSnap.id,
+    ...data,
+  };
 }

@@ -49,12 +49,14 @@ export type ReceptInput = Omit<
 
 // 4. WeekmenuDag (één dag in het weekmenu)
 export type WeekmenuDag = {
-  dag: string; // bv. "maandag"
-  datum: string; // bv. "05/06"
-  dienst: string; // bv. "A", "B", "C+", etc.
-  maaltijd: string; // vrije tekst, 2-3 regels mogelijk
-  receptenIds?: string[]; // optioneel, als je ooit een koppeling wilt met recepten
+  id: string;
+  dag: string; // "Zaterdag" etc.
+  datum: string; // bv "05/06"
+  dienst: string; // max 3 chars, bv "A"
+  maaltijd: string; // max 2-3 regels tekst
   notitie?: string; // optioneel, notitie per dag
+  receptenIds?: string[]; // optioneel, als je ooit een koppeling wilt met recepten
+  isEditing?: boolean; // voor lokale UI state
 };
 
 // 5. Weekmenu
