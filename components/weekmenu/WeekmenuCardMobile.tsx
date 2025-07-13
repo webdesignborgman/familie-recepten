@@ -116,6 +116,7 @@ export function WeekmenuCardMobile({
                 ref={dragRef}
                 {...listeners}
                 {...attributes}
+                style={{ touchAction: 'none' }}
                 className="text-foreground hover:text-primary"
                 title="Sleep maaltijd"
               >
