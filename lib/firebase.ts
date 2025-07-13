@@ -7,7 +7,7 @@ import {
   query,
   where,
   getDocs,
-  DocumentData,
+  // DocumentData,
 } from 'firebase/firestore';
 import {
   getAuth,
@@ -23,7 +23,7 @@ import { getStorage } from 'firebase/storage';
 import { toast } from 'sonner';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-import type { ReceptInput, Weekmenu, WeekmenuDag } from '@/types/index';
+import type { ReceptInput, Weekmenu } from '@/types/index'; //WeekmenuDag
 
 // ===================
 // Firebase config
