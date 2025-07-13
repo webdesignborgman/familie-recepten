@@ -1,7 +1,14 @@
-// ✅ WeekmenuCardList.tsx
 'use client';
 import { useState, useEffect } from 'react';
-import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
+import {
+  DndContext,
+  closestCenter,
+  type DragEndEvent,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  TouchSensor,
+} from '@dnd-kit/core';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { WeekmenuCard } from './WeekmenuCard';
 import { WeekmenuCardMobile } from './WeekmenuCardMobile';
@@ -23,6 +30,9 @@ export function WeekmenuCardList({ weekmenuId, dagen }: Props) {
   const [editNotitie, setEditNotitie] = useState('');
 
   const isMobile = useMediaQuery('(max-width: 640px)');
+
+  // ✅ Sensors configureren voor desktop én mobiel ondersteuning
+  const sensors = useSensors(useSensor(PointerSensor), useSensor(TouchSensor));
 
   useEffect(() => {
     if (editingId) {
@@ -88,7 +98,7 @@ export function WeekmenuCardList({ weekmenuId, dagen }: Props) {
   }
 
   return (
-    <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       {isMobile ? (
         <ul className="flex flex-col gap-4">
           {items.map(dag => (
