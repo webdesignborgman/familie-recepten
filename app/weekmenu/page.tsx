@@ -14,6 +14,10 @@ export default function WeekmenuPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('Weekmenu:', weekmenu);
+  }, [weekmenu]);
+
+  useEffect(() => {
     if (authLoading) return;
     if (!user) {
       setWeekmenu(null);
@@ -98,7 +102,11 @@ export default function WeekmenuPage() {
   return (
     <main className="max-w-3xl mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-6">Weekmenu</h1>
-      <WeekmenuCardList weekmenuId={weekmenu.id} dagen={weekmenu.dagen} />
+      {weekmenu && weekmenu.dagen ? (
+        <WeekmenuCardList weekmenuId={weekmenu.id} dagen={weekmenu.dagen} />
+      ) : (
+        <div>Weekmenu laden mislukt...</div>
+      )}
     </main>
   );
 }
