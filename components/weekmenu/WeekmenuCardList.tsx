@@ -1,3 +1,4 @@
+// ✅ WeekmenuCardList.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import {
@@ -11,9 +12,10 @@ import {
 } from '@dnd-kit/core';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { WeekmenuCard } from './WeekmenuCard';
-import { WeekmenuCardMobile } from './WeekmenuCardMobile';
+import { WeekmenuCardMobileSortable } from './WeekmenuCardMobileSortable';
 import { updateWeekmenuDagen } from '@/lib/weekmenu-api';
 import type { WeekmenuDag } from '@/types';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
 interface Props {
   weekmenuId: string;
@@ -31,16 +33,16 @@ export function WeekmenuCardList({ weekmenuId, dagen }: Props) {
 
   const isMobile = useMediaQuery('(max-width: 640px)');
 
-  // ✅ Sensors configureren voor desktop én mobiel ondersteuning
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(TouchSensor, {
       activationConstraint: {
         delay: 200,
-        tolerance: 8, // hoeveel px je mag bewegen tijdens delay
+        tolerance: 8,
       },
     })
   );
+
   useEffect(() => {
     if (editingId) {
       const dag = items.find(d => d.id === editingId);
@@ -107,31 +109,33 @@ export function WeekmenuCardList({ weekmenuId, dagen }: Props) {
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       {isMobile ? (
-        <ul className="flex flex-col gap-4">
-          {items.map(dag => (
-            <li key={dag.id}>
-              <WeekmenuCardMobile
-                dag={dag}
-                editing={editingId === dag.id}
-                notitieEditing={notitieEditingId === dag.id}
-                editDatum={editDatum}
-                editDienst={editDienst}
-                editMaaltijd={editMaaltijd}
-                editNotitie={editNotitie}
-                onChangeDatum={setEditDatum}
-                onChangeDienst={setEditDienst}
-                onChangeMaaltijd={setEditMaaltijd}
-                onChangeNotitie={setEditNotitie}
-                onSave={handleSaveDag}
-                onCancel={() => setEditingId(null)}
-                onSaveNotitie={handleSaveNotitie}
-                onCancelNotitie={() => setNotitieEditingId(null)}
-                onEdit={() => setEditingId(dag.id)}
-                onNotitieEdit={() => setNotitieEditingId(dag.id)}
-              />
-            </li>
-          ))}
-        </ul>
+        <SortableContext items={items.map(d => d.id)} strategy={verticalListSortingStrategy}>
+          <ul className="flex flex-col gap-4">
+            {items.map(dag => (
+              <li key={dag.id}>
+                <WeekmenuCardMobileSortable
+                  dag={dag}
+                  editing={editingId === dag.id}
+                  notitieEditing={notitieEditingId === dag.id}
+                  editDatum={editDatum}
+                  editDienst={editDienst}
+                  editMaaltijd={editMaaltijd}
+                  editNotitie={editNotitie}
+                  onChangeDatum={setEditDatum}
+                  onChangeDienst={setEditDienst}
+                  onChangeMaaltijd={setEditMaaltijd}
+                  onChangeNotitie={setEditNotitie}
+                  onSave={handleSaveDag}
+                  onCancel={() => setEditingId(null)}
+                  onSaveNotitie={handleSaveNotitie}
+                  onCancelNotitie={() => setNotitieEditingId(null)}
+                  onEdit={() => setEditingId(dag.id)}
+                  onNotitieEdit={() => setNotitieEditingId(dag.id)}
+                />
+              </li>
+            ))}
+          </ul>
+        </SortableContext>
       ) : (
         <div className="flex flex-col gap-4">
           {items.map(dag => (
