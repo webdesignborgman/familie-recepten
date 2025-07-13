@@ -32,8 +32,15 @@ export function WeekmenuCardList({ weekmenuId, dagen }: Props) {
   const isMobile = useMediaQuery('(max-width: 640px)');
 
   // ✅ Sensors configureren voor desktop én mobiel ondersteuning
-  const sensors = useSensors(useSensor(PointerSensor), useSensor(TouchSensor));
-
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 8, // hoeveel px je mag bewegen tijdens delay
+      },
+    })
+  );
   useEffect(() => {
     if (editingId) {
       const dag = items.find(d => d.id === editingId);
