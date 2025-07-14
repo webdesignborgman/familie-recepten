@@ -1,4 +1,3 @@
-// ✅ WeekmenuCardMobileSortable.tsx (alleen voor mobiel gebruik)
 'use client';
 
 import { useSortable } from '@dnd-kit/sortable';
@@ -59,15 +58,15 @@ export function WeekmenuCardMobileSortable({
       style={style}
       className="bg-gradient-to-br from-[hsl(210,100%,92%)] via-white to-[hsl(142,69%,58%)/0.10] rounded-xl shadow-sm p-4 flex flex-col gap-2"
     >
-      {/* Rij 1: Dag + Datum + Dienst */}
-      <div className="flex items-center justify-between gap-2">
+      {/* Rij 1: Chefhat, dag, datum, dienst in één regel */}
+      <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
           <ChefHat className="w-5 h-5 text-white" />
         </div>
-        <div className="flex-1">
-          <div className="font-bold text-[1.05rem] text-foreground">{dag.dag}</div>
+        <div className="flex flex-wrap items-center gap-2 text-[1.05rem] font-bold text-foreground">
+          <span>{dag.dag}</span>
           {editing ? (
-            <div className="flex gap-2 mt-1">
+            <>
               <input
                 value={editDatum}
                 onChange={e => onChangeDatum(e.target.value)}
@@ -82,19 +81,19 @@ export function WeekmenuCardMobileSortable({
                 maxLength={3}
                 placeholder="D."
               />
-            </div>
+            </>
           ) : (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-              <span>{dag.datum}</span>
-              <span className="inline-block bg-tertiary-light px-2 py-0.5 rounded-full">
+            <>
+              <span className="text-sm font-normal text-muted-foreground">{dag.datum}</span>
+              <span className="inline-block bg-tertiary-light px-2 py-0.5 rounded-full text-sm font-normal">
                 {dag.dienst}
               </span>
-            </div>
+            </>
           )}
         </div>
       </div>
 
-      {/* Rij 2: Maaltijd */}
+      {/* Rij 2: Maaltijd + acties */}
       <div className="flex items-start gap-2 justify-between">
         {editing ? (
           <textarea
@@ -119,14 +118,6 @@ export function WeekmenuCardMobileSortable({
             </>
           ) : (
             <>
-              <button
-                className="text-foreground hover:text-primary"
-                title="Sleep maaltijd"
-                {...listeners}
-                {...attributes}
-              >
-                <GripVertical className="w-5 h-5" />
-              </button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -145,12 +136,20 @@ export function WeekmenuCardMobileSortable({
               >
                 <StickyNote className="w-4 h-4" />
               </Button>
+              <button
+                className="bg-muted text-muted-foreground rounded p-4 hover:text-orange-500 hover:bg-muted-foreground/10"
+                title="Sleep maaltijd"
+                {...listeners}
+                {...attributes}
+              >
+                <GripVertical className="w-4 h-4" />
+              </button>
             </>
           )}
         </div>
       </div>
 
-      {/* Notitie-edit */}
+      {/* Rij 3: Notitie */}
       {notitieEditing ? (
         <div className="flex flex-col gap-2">
           <textarea

@@ -221,6 +221,24 @@ export function WeekmenuCard({
             <div className="text-base font-medium text-foreground line-clamp-2">{dag.maaltijd}</div>
           </div>
           <div className="row-span-2 flex items-center justify-center">
+            <Button
+              className="bg-gradient-primary text-white"
+              variant="ghost"
+              size="icon"
+              onClick={onEdit}
+              title="Bewerken"
+            >
+              <SquarePen className="w-4 h-4" />
+            </Button>
+            <Button
+              className="bg-muted"
+              variant="ghost"
+              size="icon"
+              onClick={onNotitieEdit}
+              title="Notitie"
+            >
+              <StickyNote className="w-4 h-4" />
+            </Button>
             <button
               ref={node => {
                 setDragRef(node);
@@ -228,24 +246,11 @@ export function WeekmenuCard({
               }}
               {...listeners}
               {...attributes}
-              className="text-muted-foreground hover:text-primary p-1"
+              className="bg-muted text-muted-foreground rounded p-4 hover:text-orange-500 hover:bg-muted-foreground/10"
+              title="Sleep maaltijd"
             >
-              <GripVertical className="w-5 h-5" />
+              <GripVertical className="w-4 h-4" />
             </button>
-          </div>
-          <div className="row-span-2 flex items-center justify-center">
-            <Button
-              className="p-1 h-8 w-8 bg-gradient-primary text-white"
-              size="icon"
-              onClick={onEdit}
-            >
-              <SquarePen className="w-4 h-4" />
-            </Button>
-          </div>
-          <div className="row-span-2 flex items-center justify-center">
-            <Button className="p-1 h-8 w-8 bg-muted" size="icon" onClick={onNotitieEdit}>
-              <StickyNote className="w-5 h-5" />
-            </Button>
           </div>
         </>
       )}
