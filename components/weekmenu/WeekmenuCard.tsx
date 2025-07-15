@@ -3,7 +3,9 @@ import { useState, useEffect } from 'react';
 import { ChefHat, SquarePen, GripVertical, StickyNote, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { WeekmenuDag } from '@/types';
-import { useDraggable, useDroppable } from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { motion } from 'framer-motion';
 
 interface CardProps {
   dag: WeekmenuDag;
@@ -47,19 +49,34 @@ export function WeekmenuCard({
     setEditNotitie(dag.notitie ?? '');
   }, [dag, notitieEditing]);
 
-  const {
-    setNodeRef: setDragRef,
-    listeners,
-    attributes,
-    isDragging,
-  } = useDraggable({
+  // Gebruik useSortable voor echte drag & drop
+  const { setNodeRef, listeners, attributes, transform, transition, isDragging } = useSortable({
     id: dragId,
     disabled: dragDisabled || editing || notitieEditing,
   });
-  const { setNodeRef: setDropRef } = useDroppable({
-    id: dragId,
-    disabled: dragDisabled || editing || notitieEditing,
-  });
+
+  // CSS transform vanuit dnd-kit
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 40 : undefined,
+  };
+
+  // Framer Motion variants
+  const dragVariants = {
+    rest: {
+      scale: 1,
+      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      backgroundColor: 'rgba(255,255,255,1)',
+      transition: { type: 'spring', stiffness: 380, damping: 24 },
+    },
+    drag: {
+      scale: 1.05,
+      boxShadow: '0 8px 32px 0 rgba(31, 110, 63, 0.16)',
+      backgroundColor: 'rgba(232,255,238,0.7)',
+      transition: { type: 'spring', stiffness: 380, damping: 24 },
+    },
+  } as const;
 
   function handleSave() {
     onSave({
@@ -78,11 +95,13 @@ export function WeekmenuCard({
   }
 
   return (
-    <div
-      ref={setDropRef}
+    <motion.div
+      ref={setNodeRef}
+      style={style}
+      animate={isDragging ? 'drag' : 'rest'}
+      variants={dragVariants}
       className={`bg-gradient-to-br from-[hsl(210,100%,92%)] via-white to-[hsl(142,69%,58%)/0.10]
         rounded-xl shadow-sm border border-border/50 px-4 py-3 transition-all relative min-h-[70px]
-        ${isDragging ? 'ring-2 ring-primary bg-primary-light/40' : ''}
         ${
           editing || notitieEditing
             ? 'grid grid-cols-[56px_120px_54px_1.5fr_auto] grid-rows-1 items-center gap-x-2'
@@ -157,10 +176,7 @@ export function WeekmenuCard({
           />
           <div className="flex items-center gap-1 ml-2">
             <button
-              ref={node => {
-                setDragRef(node);
-                setDropRef(node);
-              }}
+              // Drag is uitgeschakeld tijdens edit
               {...listeners}
               {...attributes}
               disabled
@@ -240,10 +256,6 @@ export function WeekmenuCard({
               <StickyNote className="w-4 h-4" />
             </Button>
             <button
-              ref={node => {
-                setDragRef(node);
-                setDropRef(node);
-              }}
               {...listeners}
               {...attributes}
               className="bg-muted text-muted-foreground rounded p-4 hover:text-orange-500 hover:bg-muted-foreground/10"
@@ -262,6 +274,6 @@ export function WeekmenuCard({
           {dag.notitie}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

@@ -102,3 +102,15 @@ export type Groep = {
   eigenaar: string; // userId van de eigenaar/beheerder
   aangemaaktOp: string; // of Firestore Timestamp
 };
+
+// Boodschapenlijst
+
+export type ShoppingItem = {
+  id: string;
+  name: string;
+  quantity?: string;
+  checked: boolean;
+  urgent?: boolean;
+  promo?: boolean;
+  createdAt: number;
+};

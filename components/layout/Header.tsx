@@ -137,7 +137,7 @@ export function Header() {
 
           {/* Mobile menu button */}
           <button
-            className="md:hidden p-2 text-muted-foreground hover:text-primary transition-colors"
+            className="md:hidden p-2 bg-gradient-primary text-white rounded-lg hover:bg-gradient-primary/90 transition-colors duration-200"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Toon menu"
             type="button"

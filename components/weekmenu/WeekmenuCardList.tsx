@@ -137,34 +137,37 @@ export function WeekmenuCardList({ weekmenuId, dagen }: Props) {
           </ul>
         </SortableContext>
       ) : (
-        <div className="flex flex-col gap-4">
-          {items.map(dag => (
-            <WeekmenuCard
-              key={dag.id}
-              dag={dag}
-              editing={editingId === dag.id}
-              onEdit={() => setEditingId(dag.id)}
-              onCancel={() => setEditingId(null)}
-              onSave={updated => {
-                const newItems = items.map(d => (d.id === updated.id ? updated : d));
-                setItems(newItems);
-                updateWeekmenuDagen(weekmenuId, newItems);
-                setEditingId(null);
-              }}
-              dragId={dag.id}
-              dragDisabled={editingId !== null || notitieEditingId !== null}
-              notitieEditing={notitieEditingId === dag.id}
-              onNotitieEdit={() => setNotitieEditingId(dag.id)}
-              onNotitieCancel={() => setNotitieEditingId(null)}
-              onSaveNotitie={updated => {
-                const newItems = items.map(d => (d.id === updated.id ? updated : d));
-                setItems(newItems);
-                updateWeekmenuDagen(weekmenuId, newItems);
-                setNotitieEditingId(null);
-              }}
-            />
-          ))}
-        </div>
+        <SortableContext items={items.map(d => d.id)} strategy={verticalListSortingStrategy}>
+          <ul className="flex flex-col gap-4">
+            {items.map(dag => (
+              <li key={dag.id}>
+                <WeekmenuCard
+                  dag={dag}
+                  editing={editingId === dag.id}
+                  onEdit={() => setEditingId(dag.id)}
+                  onCancel={() => setEditingId(null)}
+                  onSave={updated => {
+                    const newItems = items.map(d => (d.id === updated.id ? updated : d));
+                    setItems(newItems);
+                    updateWeekmenuDagen(weekmenuId, newItems);
+                    setEditingId(null);
+                  }}
+                  dragId={dag.id}
+                  dragDisabled={editingId !== null || notitieEditingId !== null}
+                  notitieEditing={notitieEditingId === dag.id}
+                  onNotitieEdit={() => setNotitieEditingId(dag.id)}
+                  onNotitieCancel={() => setNotitieEditingId(null)}
+                  onSaveNotitie={updated => {
+                    const newItems = items.map(d => (d.id === updated.id ? updated : d));
+                    setItems(newItems);
+                    updateWeekmenuDagen(weekmenuId, newItems);
+                    setNotitieEditingId(null);
+                  }}
+                />
+              </li>
+            ))}
+          </ul>
+        </SortableContext>
       )}
     </DndContext>
   );
