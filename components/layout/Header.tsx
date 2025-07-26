@@ -20,6 +20,7 @@ import {
 const navItems = [
   { label: 'Recepten', href: '/recepten' },
   { label: 'Weekmenu', href: '/weekmenu' },
+  { label: 'Maaltijdplanner', href: '/maaltijdplanner' },
   { label: 'Boodschappenlijst', href: '/boodschappenlijst' },
 ];
 
