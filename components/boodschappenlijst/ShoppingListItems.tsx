@@ -3,7 +3,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ShoppingItem } from '@/types';
+import { ShoppingItem, ShoppingCategory } from '@/types';
 import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -25,14 +25,23 @@ export function ShoppingListItems({ groupId }: Props) {
     return () => unsub();
   }, [groupId]);
 
-  // Sorteer: niet-afgevinkt alfabetisch bovenaan, afgevinkte alfabetisch onderaan
-  const unchecked = items
-    .filter(i => !i.checked)
-    .sort((a, b) => a.name.localeCompare(b.name, 'nl', { sensitivity: 'base' }));
-  const checked = items
-    .filter(i => i.checked)
-    .sort((a, b) => a.name.localeCompare(b.name, 'nl', { sensitivity: 'base' }));
-  const sortedItems = [...unchecked, ...checked];
+  // Sorteer op vaste categorie volgorde, daarna alfabetisch, en zet afgevinkte onderaan
+  const categoryOrder: ShoppingCategory[] = ['Groente', 'Fruit', 'Vlees', 'Diepvries'];
+  function categoryRank(cat?: ShoppingCategory) {
+    if (!cat) return 999; // alles zonder categorie onderaan de niet-afgevinkte groep
+    const idx = categoryOrder.indexOf(cat);
+    return idx === -1 ? 998 : idx; // onbekend (zou niet moeten) vlak boven 'geen'
+  }
+
+  const sortedItems = [...items].sort((a, b) => {
+    // Eerst: checked status (unchecked eerst)
+    if (a.checked !== b.checked) return a.checked ? 1 : -1;
+    // Dan: categorie rank
+    const cr = categoryRank(a.category) - categoryRank(b.category);
+    if (cr !== 0) return cr;
+    // Dan: alfabetische naam
+    return a.name.localeCompare(b.name, 'nl', { sensitivity: 'base' });
+  });
 
   async function toggleCheck(item: ShoppingItem) {
     const updated = cleanItem({ ...item, checked: !item.checked });

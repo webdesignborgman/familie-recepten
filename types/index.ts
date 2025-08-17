@@ -112,5 +112,10 @@ export type ShoppingItem = {
   checked: boolean;
   urgent?: boolean;
   promo?: boolean;
+  // Optionele categorie voor sortering en weergave
+  category?: ShoppingCategory;
   createdAt: number;
 };
+
+// Vaste categorieën voor boodschappen (uitbreidbaar indien nodig)
+export type ShoppingCategory = 'Groente' | 'Fruit' | 'Vlees' | 'Diepvries';

@@ -101,7 +101,7 @@ export function ShoppingListItemCard({ item, onToggleCheck, onDelete, onEdit }: 
       </button>
 
       {/* Main content */}
-      <div className="flex-1 min-w-0 ml-4 flex items-center gap-2">
+      <div className="flex-1 min-w-0 ml-4 flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
         {editing ? (
           <div className="flex items-center gap-2 w-full">
             <input
@@ -140,39 +140,52 @@ export function ShoppingListItemCard({ item, onToggleCheck, onDelete, onEdit }: 
             </button>
           </div>
         ) : (
-          <>
-            <span
-              className={`
-                font-medium truncate
-                ${checked ? 'line-through text-muted-foreground' : ''}
-              `}
-            >
-              {item.name}
-            </span>
-            {item.urgent && (
-              <Badge
-                variant="destructive"
-                className={`
-                  text-xs flex items-center gap-1
-                  ${checked ? 'line-through opacity-60' : ''}
-                `}
-              >
-                <AlertCircle size={14} className="inline" />
-                Belangrijk
-              </Badge>
+          <div className="w-full flex flex-col gap-1">
+            {(item.urgent || item.promo) && (
+              <div className="flex flex-wrap gap-2">
+                {item.urgent && (
+                  <Badge
+                    variant="destructive"
+                    className={`text-xs flex items-center gap-1 ${
+                      checked ? 'line-through opacity-60' : ''
+                    }`}
+                  >
+                    <AlertCircle size={14} className="inline" />
+                    Belangrijk
+                  </Badge>
+                )}
+                {item.promo && (
+                  <Badge
+                    variant="outline"
+                    className="border-orange-400 text-orange-700 bg-orange-50 text-xs flex items-center gap-1"
+                  >
+                    Mits aanbieding
+                  </Badge>
+                )}
+              </div>
             )}
-            {item.promo && (
-              <Badge
-                variant="outline"
-                className="border-orange-400 text-orange-700 bg-orange-50 text-xs flex items-center gap-1"
-              >
-                Mits aanbieding
-              </Badge>
-            )}
-            {item.quantity && (
-              <span className="text-base font-medium text-black ml-2">{item.quantity}x</span>
-            )}
-          </>
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className={`font-medium truncate ${
+                    checked ? 'line-through text-muted-foreground' : ''
+                  }`}
+                >
+                  {item.name}
+                </span>
+                {item.quantity && (
+                  <span className="text-base font-medium text-black whitespace-nowrap">
+                    {item.quantity}x
+                  </span>
+                )}
+              </div>
+              {item.category && (
+                <span className="text-[10px] tracking-wide uppercase text-muted-foreground mt-0.5">
+                  {item.category}
+                </span>
+              )}
+            </div>
+          </div>
         )}
       </div>
       {/* Rechts: Edit & Delete alleen als niet afgevinkt */}

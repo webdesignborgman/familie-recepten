@@ -6,7 +6,7 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, AlertCircle, Tag } from 'lucide-react';
-import { ShoppingItem } from '@/types';
+import { ShoppingItem, ShoppingCategory } from '@/types';
 import { doc, updateDoc, arrayUnion, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { v4 as uuidv4 } from 'uuid';
@@ -19,6 +19,7 @@ export function ShoppingListAdd({ groupId }: Props) {
   const [important, setImportant] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [promo, setPromo] = useState(false);
+  const [category, setCategory] = useState<ShoppingCategory | ''>('');
 
   async function handleAdd() {
     const trimmed = name.trim();
@@ -32,6 +33,7 @@ export function ShoppingListAdd({ groupId }: Props) {
       promo: promo,
       createdAt: Date.now(),
       ...(quantity.trim() && { quantity: quantity.trim() }),
+      ...(category && { category }),
     };
 
     const docRef = doc(db, 'shoppingLists', groupId);
@@ -51,6 +53,7 @@ export function ShoppingListAdd({ groupId }: Props) {
     setQuantity('');
     setImportant(false);
     setPromo(false);
+    setCategory('');
     inputRef.current?.focus();
   }
 
@@ -61,29 +64,44 @@ export function ShoppingListAdd({ groupId }: Props) {
   }
 
   return (
-    <div className="flex gap-2 items-center">
+    <div className="flex gap-2 items-center flex-wrap">
+      {/* Productnaam */}
       <Input
         ref={inputRef}
         placeholder="Naam van item"
         value={name}
         onChange={e => setName(e.target.value)}
         onKeyDown={handleKeyDown}
-        className="flex-1"
+        className="flex-1 min-w-[160px] order-1"
         aria-label="Naam van item"
       />
+      {/* Aantal */}
       <Input
         placeholder="Aantal"
         value={quantity}
         onChange={e => setQuantity(e.target.value)}
         onKeyDown={handleKeyDown}
-        className="w-24"
+        className="w-24 order-2 sm:order-3"
         aria-label="Aantal"
       />
+      {/* Categorie: mobiel volle breedte direct onder productnaam, desktop inline */}
+      <select
+        value={category}
+        onChange={e => setCategory(e.target.value as ShoppingCategory | '')}
+        className="border border-border rounded px-2 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-40 order-3 sm:order-2"
+        aria-label="Categorie"
+      >
+        <option value="">Categorie</option>
+        <option value="Groente">Groente</option>
+        <option value="Fruit">Fruit</option>
+        <option value="Vlees">Vlees</option>
+        <option value="Diepvries">Diepvries</option>
+      </select>
       <Button
         type="button"
         variant={important ? 'destructive' : 'outline'}
         size="icon"
-        className="transition border-0"
+        className="transition border-0 order-4"
         aria-pressed={important}
         onClick={() => setImportant(v => !v)}
         title="Markeer als belangrijk"
@@ -99,7 +117,7 @@ export function ShoppingListAdd({ groupId }: Props) {
         onClick={() => setPromo(v => !v)}
         title="Markeer als aanbieding"
         className={`
-            transition border-0
+            transition border-0 order-5
             ${promo ? 'bg-[hsl(31,90%,65%)] text-white' : ''}
             hover:bg-orange-100
             focus:ring-orange-500
@@ -113,6 +131,7 @@ export function ShoppingListAdd({ groupId }: Props) {
         size="icon"
         onClick={handleAdd}
         aria-label="Toevoegen"
+        className="order-6"
       >
         <Plus />
       </Button>
