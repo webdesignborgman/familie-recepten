@@ -25,7 +25,6 @@ interface Props {
 export function WeekmenuCardList({ weekmenuId, dagen }: Props) {
   const [items, setItems] = useState<WeekmenuDag[]>(dagen);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [notitieEditingId, setNotitieEditingId] = useState<string | null>(null);
   const [editDatum, setEditDatum] = useState('');
   const [editDienst, setEditDienst] = useState('');
   const [editMaaltijd, setEditMaaltijd] = useState('');
@@ -54,14 +53,13 @@ export function WeekmenuCardList({ weekmenuId, dagen }: Props) {
     }
   }, [editingId, items]);
 
+  // Wanneer je een dag gaat editen, laad ook de notitie
   useEffect(() => {
-    if (notitieEditingId) {
-      const dag = items.find(d => d.id === notitieEditingId);
-      if (dag) {
-        setEditNotitie(dag.notitie || '');
-      }
+    if (editingId) {
+      const dag = items.find(d => d.id === editingId);
+      if (dag) setEditNotitie(dag.notitie || '');
     }
-  }, [notitieEditingId, items]);
+  }, [editingId, items]);
 
   function handleDragEnd(event: DragEndEvent) {
     const fromId = event.active.id as string;
@@ -88,22 +86,13 @@ export function WeekmenuCardList({ weekmenuId, dagen }: Props) {
             datum: editDatum,
             dienst: editDienst.slice(0, 3),
             maaltijd: editMaaltijd,
+            notitie: editNotitie.trim(),
           }
         : d
     );
     setItems(newItems);
     updateWeekmenuDagen(weekmenuId, newItems);
     setEditingId(null);
-  }
-
-  function handleSaveNotitie() {
-    if (!notitieEditingId) return;
-    const newItems = items.map(d =>
-      d.id === notitieEditingId ? { ...d, notitie: editNotitie } : d
-    );
-    setItems(newItems);
-    updateWeekmenuDagen(weekmenuId, newItems);
-    setNotitieEditingId(null);
   }
 
   return (
@@ -116,7 +105,7 @@ export function WeekmenuCardList({ weekmenuId, dagen }: Props) {
                 <WeekmenuCardMobileSortable
                   dag={dag}
                   editing={editingId === dag.id}
-                  notitieEditing={notitieEditingId === dag.id}
+                  notitieEditing={false}
                   editDatum={editDatum}
                   editDienst={editDienst}
                   editMaaltijd={editMaaltijd}
@@ -127,10 +116,10 @@ export function WeekmenuCardList({ weekmenuId, dagen }: Props) {
                   onChangeNotitie={setEditNotitie}
                   onSave={handleSaveDag}
                   onCancel={() => setEditingId(null)}
-                  onSaveNotitie={handleSaveNotitie}
-                  onCancelNotitie={() => setNotitieEditingId(null)}
+                  onSaveNotitie={() => {}}
+                  onCancelNotitie={() => {}}
                   onEdit={() => setEditingId(dag.id)}
-                  onNotitieEdit={() => setNotitieEditingId(dag.id)}
+                  onNotitieEdit={() => setEditingId(dag.id)}
                 />
               </li>
             ))}
@@ -153,16 +142,7 @@ export function WeekmenuCardList({ weekmenuId, dagen }: Props) {
                     setEditingId(null);
                   }}
                   dragId={dag.id}
-                  dragDisabled={editingId !== null || notitieEditingId !== null}
-                  notitieEditing={notitieEditingId === dag.id}
-                  onNotitieEdit={() => setNotitieEditingId(dag.id)}
-                  onNotitieCancel={() => setNotitieEditingId(null)}
-                  onSaveNotitie={updated => {
-                    const newItems = items.map(d => (d.id === updated.id ? updated : d));
-                    setItems(newItems);
-                    updateWeekmenuDagen(weekmenuId, newItems);
-                    setNotitieEditingId(null);
-                  }}
+                  dragDisabled={editingId !== null}
                 />
               </li>
             ))}

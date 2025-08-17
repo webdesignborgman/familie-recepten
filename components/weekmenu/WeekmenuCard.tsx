@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { ChefHat, SquarePen, GripVertical, StickyNote, Check, X } from 'lucide-react';
+import { ChefHat, SquarePen, GripVertical, StickyNote, Check, X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { WeekmenuDag } from '@/types';
 import { useSortable } from '@dnd-kit/sortable';
@@ -15,10 +15,6 @@ interface CardProps {
   onCancel: () => void;
   dragId: string;
   dragDisabled?: boolean;
-  notitieEditing: boolean;
-  onNotitieEdit: () => void;
-  onNotitieCancel: () => void;
-  onSaveNotitie: (dag: WeekmenuDag) => void;
 }
 
 export function WeekmenuCard({
@@ -29,10 +25,6 @@ export function WeekmenuCard({
   onCancel,
   dragId,
   dragDisabled = false,
-  notitieEditing,
-  onNotitieEdit,
-  onNotitieCancel,
-  onSaveNotitie,
 }: CardProps) {
   const [editDatum, setEditDatum] = useState(dag.datum);
   const [editDienst, setEditDienst] = useState(dag.dienst);
@@ -43,16 +35,13 @@ export function WeekmenuCard({
     setEditDatum(dag.datum);
     setEditDienst(dag.dienst);
     setEditMaaltijd(dag.maaltijd);
-  }, [dag, editing]);
-
-  useEffect(() => {
     setEditNotitie(dag.notitie ?? '');
-  }, [dag, notitieEditing]);
+  }, [dag, editing]);
 
   // Gebruik useSortable voor echte drag & drop
   const { setNodeRef, listeners, attributes, transform, transition, isDragging } = useSortable({
     id: dragId,
-    disabled: dragDisabled || editing || notitieEditing,
+    disabled: dragDisabled || editing,
   });
 
   // CSS transform vanuit dnd-kit
@@ -78,19 +67,14 @@ export function WeekmenuCard({
     },
   } as const;
 
-  function handleSave() {
+  // Opslaan volledige dag incl. notitie
+  function handleSaveAll() {
     onSave({
       ...dag,
       datum: editDatum,
       dienst: editDienst.slice(0, 3),
       maaltijd: editMaaltijd,
-    });
-  }
-
-  function handleSaveNotitie() {
-    onSaveNotitie({
-      ...dag,
-      notitie: editNotitie,
+      notitie: editNotitie.trim(),
     });
   }
 
@@ -103,16 +87,14 @@ export function WeekmenuCard({
       className={`bg-gradient-to-br from-[hsl(210,100%,92%)] via-white to-[hsl(142,69%,58%)/0.10]
         rounded-xl shadow-sm border border-border/50 px-4 py-3 transition-all relative min-h-[70px]
         ${
-          editing || notitieEditing
+          editing
             ? 'grid grid-cols-[56px_120px_54px_1.5fr_auto] grid-rows-1 items-center gap-x-2'
             : 'grid grid-cols-[56px_120px_54px_1.5fr_auto_auto_auto] grid-rows-2 items-center gap-x-2 gap-y-1'
         }
       `}
     >
       {/* ChefHat */}
-      <div
-        className={editing || notitieEditing ? '' : 'row-span-2 flex items-center justify-center'}
-      >
+      <div className={editing ? '' : 'row-span-2 flex items-center justify-center'}>
         <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-primary to-primary-light">
           <ChefHat className="w-5 h-5 text-white" />
         </div>
@@ -121,9 +103,7 @@ export function WeekmenuCard({
       {/* Dag & Datum */}
       <div
         className={
-          editing || notitieEditing
-            ? 'flex flex-col justify-center'
-            : 'flex flex-col justify-center row-span-2'
+          editing ? 'flex flex-col justify-center' : 'flex flex-col justify-center row-span-2'
         }
       >
         <div className="font-bold text-base text-foreground truncate">{dag.dag}</div>
@@ -143,7 +123,7 @@ export function WeekmenuCard({
       {/* Dienst */}
       <div
         className={
-          editing || notitieEditing
+          editing
             ? 'flex items-center justify-center'
             : 'row-span-2 flex items-center justify-center'
         }
@@ -164,30 +144,32 @@ export function WeekmenuCard({
 
       {/* Maaltijd of Notitie-edit */}
       {editing ? (
-        <>
-          <textarea
-            rows={1}
-            className="w-full rounded border px-2 py-1 text-base font-medium resize-none"
-            value={editMaaltijd}
-            onChange={e => setEditMaaltijd(e.target.value)}
-            placeholder="Maaltijd"
-            maxLength={120}
-            autoFocus
-          />
-          <div className="flex items-center gap-1 ml-2">
-            <button
-              // Drag is uitgeschakeld tijdens edit
-              {...listeners}
-              {...attributes}
-              disabled
-              className="text-muted-foreground hover:text-primary p-1"
-            >
-              <GripVertical className="w-5 h-5" />
-            </button>
+        <div className="col-span-2 flex items-start gap-2">
+          <div className="flex-1 flex flex-col gap-2">
+            <textarea
+              rows={1}
+              className="w-full rounded border px-2 py-1 text-base font-medium resize-none"
+              value={editMaaltijd}
+              onChange={e => setEditMaaltijd(e.target.value)}
+              placeholder="Maaltijd"
+              maxLength={120}
+              autoFocus
+            />
+            <textarea
+              rows={2}
+              className="w-full rounded border px-2 py-1 text-xs resize-none"
+              value={editNotitie}
+              onChange={e => setEditNotitie(e.target.value)}
+              placeholder="Notitie (optioneel)"
+              maxLength={180}
+            />
+          </div>
+          <div className="flex flex-col items-center gap-2 ml-2">
             <Button
               className="bg-success hover:bg-green-700 text-white p-1 h-8 w-8"
               size="icon"
-              onClick={handleSave}
+              onClick={handleSaveAll}
+              title="Opslaan"
             >
               <Check className="w-5 h-5" />
             </Button>
@@ -195,48 +177,33 @@ export function WeekmenuCard({
               className="bg-destructive hover:bg-red-700 text-white p-1 h-8 w-8"
               size="icon"
               onClick={onCancel}
+              title="Annuleren"
             >
               <X className="w-5 h-5" />
             </Button>
-            <Button className="p-1 h-8 w-8 bg-muted" size="icon" onClick={onNotitieEdit}>
-              <StickyNote className="w-5 h-5" />
+            <Button
+              className="bg-muted hover:bg-red-100 text-destructive p-1 h-8 w-8"
+              size="icon"
+              onClick={() => {
+                if (confirm('Verwijder inhoud van datum, dienst, maaltijd en notitie?')) {
+                  setEditDatum('');
+                  setEditDienst('');
+                  setEditMaaltijd('');
+                  setEditNotitie('');
+                }
+              }}
+              title="Leegmaken"
+            >
+              <Trash2 className="w-5 h-5" />
             </Button>
           </div>
-        </>
-      ) : notitieEditing ? (
-        <>
-          <textarea
-            rows={1}
-            className="w-full rounded border px-2 py-1 text-sm mt-1"
-            value={editNotitie}
-            onChange={e => setEditNotitie(e.target.value)}
-            placeholder="Notitie (optioneel)"
-            maxLength={140}
-            autoFocus
-          />
-          <div className="flex items-center gap-1 ml-2">
-            <Button
-              className="bg-success hover:bg-green-700 text-white p-1 h-8 w-8"
-              size="icon"
-              onClick={handleSaveNotitie}
-            >
-              <Check className="w-5 h-5" />
-            </Button>
-            <Button
-              className="bg-destructive hover:bg-red-700 text-white p-1 h-8 w-8"
-              size="icon"
-              onClick={onNotitieCancel}
-            >
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
-        </>
+        </div>
       ) : (
         <>
           <div className="row-span-2 flex items-center min-w-0">
             <div className="text-base font-medium text-foreground line-clamp-2">{dag.maaltijd}</div>
           </div>
-          <div className="row-span-2 flex items-center justify-center">
+          <div className="row-span-2 flex items-center justify-center gap-1">
             <Button
               className="bg-gradient-primary text-white"
               variant="ghost"
@@ -245,15 +212,6 @@ export function WeekmenuCard({
               title="Bewerken"
             >
               <SquarePen className="w-4 h-4" />
-            </Button>
-            <Button
-              className="bg-muted"
-              variant="ghost"
-              size="icon"
-              onClick={onNotitieEdit}
-              title="Notitie"
-            >
-              <StickyNote className="w-4 h-4" />
             </Button>
             <button
               {...listeners}
@@ -268,7 +226,7 @@ export function WeekmenuCard({
       )}
 
       {/* Notitie weergeven */}
-      {!editing && !notitieEditing && dag.notitie && (
+      {!editing && dag.notitie && (
         <div className="col-span-full mt-2 text-xs text-muted-foreground flex items-center gap-2">
           <StickyNote className="w-4 h-4" />
           {dag.notitie}
