@@ -105,7 +105,6 @@ export function WeekmenuCardList({ weekmenuId, dagen }: Props) {
                 <WeekmenuCardMobileSortable
                   dag={dag}
                   editing={editingId === dag.id}
-                  notitieEditing={false}
                   editDatum={editDatum}
                   editDienst={editDienst}
                   editMaaltijd={editMaaltijd}
@@ -116,10 +115,7 @@ export function WeekmenuCardList({ weekmenuId, dagen }: Props) {
                   onChangeNotitie={setEditNotitie}
                   onSave={handleSaveDag}
                   onCancel={() => setEditingId(null)}
-                  onSaveNotitie={() => {}}
-                  onCancelNotitie={() => {}}
                   onEdit={() => setEditingId(dag.id)}
-                  onNotitieEdit={() => setEditingId(dag.id)}
                 />
               </li>
             ))}

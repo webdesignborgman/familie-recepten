@@ -2,14 +2,13 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ChefHat, SquarePen, GripVertical, StickyNote, Check, X } from 'lucide-react';
+import { ChefHat, SquarePen, GripVertical, StickyNote, Check, X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { WeekmenuDag } from '@/types';
 
 interface Props {
   dag: WeekmenuDag;
   editing: boolean;
-  notitieEditing: boolean;
   editDatum: string;
   editDienst: string;
   editMaaltijd: string;
@@ -18,18 +17,14 @@ interface Props {
   onChangeDienst: (value: string) => void;
   onChangeMaaltijd: (value: string) => void;
   onChangeNotitie: (value: string) => void;
-  onSave: () => void;
-  onSaveNotitie: () => void;
+  onSave: () => void; // saves all fields
   onCancel: () => void;
-  onCancelNotitie: () => void;
   onEdit: () => void;
-  onNotitieEdit: () => void;
 }
 
 export function WeekmenuCardMobileSortable({
   dag,
   editing,
-  notitieEditing,
   editDatum,
   editDienst,
   editMaaltijd,
@@ -39,11 +34,8 @@ export function WeekmenuCardMobileSortable({
   onChangeMaaltijd,
   onChangeNotitie,
   onSave,
-  onSaveNotitie,
   onCancel,
-  onCancelNotitie,
   onEdit,
-  onNotitieEdit,
 }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: dag.id });
 
@@ -96,24 +88,59 @@ export function WeekmenuCardMobileSortable({
       {/* Rij 2: Maaltijd + acties */}
       <div className="flex items-start gap-2 justify-between">
         {editing ? (
-          <textarea
-            rows={2}
-            value={editMaaltijd}
-            onChange={e => onChangeMaaltijd(e.target.value)}
-            placeholder="Maaltijd"
-            className="flex-1 border rounded px-2 py-1 text-sm resize-none"
-          />
+          <div className="flex-1 flex flex-col gap-2">
+            <textarea
+              rows={2}
+              value={editMaaltijd}
+              onChange={e => onChangeMaaltijd(e.target.value)}
+              placeholder="Maaltijd"
+              className="w-full border rounded px-2 py-1 text-sm resize-none"
+            />
+            <textarea
+              rows={2}
+              value={editNotitie}
+              onChange={e => onChangeNotitie(e.target.value)}
+              placeholder="Notitie (optioneel)"
+              className="w-full border rounded px-2 py-1 text-xs resize-none"
+              maxLength={180}
+            />
+          </div>
         ) : (
           <div className="flex-1 text-[1.05rem] text-foreground font-medium">{dag.maaltijd}</div>
         )}
         <div className="flex items-center gap-2 flex-shrink-0 pl-2 pt-1">
           {editing ? (
             <>
-              <Button size="icon" className="bg-success text-white" onClick={onSave}>
+              <Button
+                size="icon"
+                className="bg-success text-white"
+                onClick={onSave}
+                title="Opslaan"
+              >
                 <Check className="w-5 h-5" />
               </Button>
-              <Button size="icon" className="bg-destructive text-white" onClick={onCancel}>
+              <Button
+                size="icon"
+                className="bg-destructive text-white"
+                onClick={onCancel}
+                title="Annuleren"
+              >
                 <X className="w-5 h-5" />
+              </Button>
+              <Button
+                size="icon"
+                className="bg-muted text-destructive hover:bg-red-100"
+                onClick={() => {
+                  if (confirm('Alles leegmaken (datum, dienst, maaltijd en notitie)?')) {
+                    onChangeDatum('');
+                    onChangeDienst('');
+                    onChangeMaaltijd('');
+                    onChangeNotitie('');
+                  }
+                }}
+                title="Leegmaken"
+              >
+                <Trash2 className="w-5 h-5" />
               </Button>
             </>
           ) : (
@@ -127,15 +154,6 @@ export function WeekmenuCardMobileSortable({
               >
                 <SquarePen className="w-4 h-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="bg-muted"
-                onClick={onNotitieEdit}
-                title="Notitie"
-              >
-                <StickyNote className="w-4 h-4" />
-              </Button>
               <button
                 className="bg-muted text-muted-foreground rounded p-4 hover:text-orange-500 hover:bg-muted-foreground/10"
                 title="Sleep maaltijd"
@@ -148,34 +166,12 @@ export function WeekmenuCardMobileSortable({
           )}
         </div>
       </div>
-
-      {/* Rij 3: Notitie */}
-      {notitieEditing ? (
-        <div className="flex flex-col gap-2">
-          <textarea
-            rows={2}
-            value={editNotitie}
-            onChange={e => onChangeNotitie(e.target.value)}
-            placeholder="Notitie"
-            className="w-full border rounded px-2 py-1 text-sm"
-          />
-          <div className="flex items-center gap-2">
-            <Button size="icon" className="bg-success text-white" onClick={onSaveNotitie}>
-              <Check className="w-5 h-5" />
-            </Button>
-            <Button size="icon" className="bg-destructive text-white" onClick={onCancelNotitie}>
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
+      {/* Notitie tonen alleen buiten edit-modus */}
+      {!editing && dag.notitie && (
+        <div className="text-xs text-muted-foreground flex gap-1 items-start pt-1">
+          <StickyNote className="w-4 h-4" />
+          {dag.notitie}
         </div>
-      ) : (
-        dag.notitie &&
-        !editing && (
-          <div className="text-xs text-muted-foreground flex gap-1 items-start pt-1">
-            <StickyNote className="w-4 h-4" />
-            {dag.notitie}
-          </div>
-        )
       )}
     </div>
   );
