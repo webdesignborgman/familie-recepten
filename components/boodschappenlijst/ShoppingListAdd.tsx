@@ -6,7 +6,7 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, AlertCircle, Tag } from 'lucide-react';
-import { ShoppingItem, ShoppingCategory } from '@/types';
+import { ShoppingItem, ShoppingCategory, SHOPPING_CATEGORIES } from '@/types';
 import { doc, updateDoc, arrayUnion, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { v4 as uuidv4 } from 'uuid';
@@ -92,10 +92,11 @@ export function ShoppingListAdd({ groupId }: Props) {
         aria-label="Categorie"
       >
         <option value="">Categorie</option>
-        <option value="Groente">Groente</option>
-        <option value="Fruit">Fruit</option>
-        <option value="Vlees">Vlees</option>
-        <option value="Diepvries">Diepvries</option>
+        {SHOPPING_CATEGORIES.map(option => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
       </select>
       <Button
         type="button"
