@@ -1,7 +1,7 @@
 // components/boodschappenlijst/ShoppingListItemCard.tsx
 
 import { useState, useRef } from 'react';
-import { ShoppingItem } from '@/types';
+import { ShoppingItem, ShoppingCategory, SHOPPING_CATEGORIES } from '@/types';
 import { Check, Trash2, AlertCircle, Pencil, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,7 +10,7 @@ type Props = {
   item: ShoppingItem;
   onToggleCheck: () => void;
   onDelete: () => void;
-  onEdit?: (newName: string, newQuantity?: string) => void;
+  onEdit?: (newName: string, newQuantity?: string, newCategory?: ShoppingCategory | '') => void;
 };
 
 export function ShoppingListItemCard({ item, onToggleCheck, onDelete, onEdit }: Props) {
@@ -18,12 +18,14 @@ export function ShoppingListItemCard({ item, onToggleCheck, onDelete, onEdit }: 
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(item.name);
   const [editQuantity, setEditQuantity] = useState(item.quantity || '');
+  const [editCategory, setEditCategory] = useState<ShoppingCategory | ''>(item.category || '');
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Start editing
   const handleEditClick = () => {
     setEditName(item.name);
     setEditQuantity(item.quantity || '');
+    setEditCategory(item.category || '');
     setEditing(true);
     setTimeout(() => {
       inputRef.current?.focus();
@@ -37,8 +39,7 @@ export function ShoppingListItemCard({ item, onToggleCheck, onDelete, onEdit }: 
       return;
     }
     if (onEdit) {
-      // Let op: geef expliciet '' (lege string) door als veld leeg is
-      onEdit(editName.trim(), editQuantity.trim());
+      onEdit(editName.trim(), editQuantity.trim(), editCategory);
     }
     setEditing(false);
   };
@@ -48,6 +49,7 @@ export function ShoppingListItemCard({ item, onToggleCheck, onDelete, onEdit }: 
     setEditing(false);
     setEditName(item.name);
     setEditQuantity(item.quantity || '');
+    setEditCategory(item.category || '');
   };
 
   // Handle key events in input
@@ -103,7 +105,7 @@ export function ShoppingListItemCard({ item, onToggleCheck, onDelete, onEdit }: 
       {/* Main content */}
       <div className="flex-1 min-w-0 ml-4 flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
         {editing ? (
-          <div className="flex items-center gap-2 w-full">
+          <div className="flex items-center gap-2 w-full flex-wrap">
             <input
               ref={inputRef}
               className="border border-border rounded px-2 py-1 text-sm flex-1"
@@ -120,6 +122,19 @@ export function ShoppingListItemCard({ item, onToggleCheck, onDelete, onEdit }: 
               onKeyDown={handleInputKey}
               // let op: geen onBlur meer hier
             />
+            <select
+              value={editCategory}
+              onChange={e => setEditCategory(e.target.value as ShoppingCategory | '')}
+              className="border border-border rounded px-2 py-1 text-xs bg-white"
+              aria-label="Categorie aanpassen"
+            >
+              <option value="">Categorie</option>
+              {SHOPPING_CATEGORIES.map(option => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
             <button
               type="button"
               className="text-muted-foreground hover:text-destructive ml-1"

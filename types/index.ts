@@ -1,5 +1,3 @@
-// types/index.ts
-
 // 1. Gebruiker (User)
 export type User = {
   id: string;
@@ -9,7 +7,7 @@ export type User = {
   groepen?: string[]; // id's van groepen waar deze user in zit
 };
 
-// 2. Categorieën (optioneel: importeer als type uit categorieen.ts, of gewoon string[])
+// 2. Categorien (optioneel: importeer als type uit categorieen.ts, of gewoon string[])
 export type Categorie = string; // Of import { Categorie } from './categorieen'
 
 // 3. Recept
@@ -25,8 +23,8 @@ export type Recept = {
   categorieen: Categorie[];
   ingredienten: Ingredient[];
   bereidingswijze: string[];
-  bereidingsTijd: string; // <-- toegevoegd!
-  aantalPersonen: number; // <-- toegevoegd!
+  bereidingsTijd: string;
+  aantalPersonen: number;
   afbeeldingUrl?: string;
   beschrijving?: string;
   privacy: 'prive' | 'publiek' | 'gedeeld';
@@ -39,33 +37,32 @@ export type Recept = {
   updatedAt?: string;
 };
 
-// *** Toegevoegd: Input type voor recepten (zonder id, ownerId, createdAt, etc.) ***
 export type ReceptInput = Omit<
   Recept,
   'id' | 'ownerId' | 'createdAt' | 'updatedAt' | 'favoritedBy'
 > & {
-  favoritedBy?: string[]; // mag leeg zijn bij aanmaken
+  favoritedBy?: string[];
 };
 
-// 4. WeekmenuDag (één dag in het weekmenu)
+// 4. WeekmenuDag
 export type WeekmenuDag = {
   id: string;
-  dag: string; // "Zaterdag" etc.
-  datum: string; // bv "05/06"
-  dienst: string; // max 3 chars, bv "A"
-  maaltijd: string; // max 2-3 regels tekst
-  notitie?: string; // optioneel, notitie per dag
-  receptenIds?: string[]; // optioneel, als je ooit een koppeling wilt met recepten
-  isEditing?: boolean; // voor lokale UI state
+  dag: string;
+  datum: string;
+  dienst: string;
+  maaltijd: string;
+  notitie?: string;
+  receptenIds?: string[];
+  isEditing?: boolean;
 };
 
 // 5. Weekmenu
 export type Weekmenu = {
   id: string;
-  ownerId: string; // consistent met Recept
+  ownerId: string;
   groupId?: string;
-  startDatum: string; // bv. "05/06" (eerste zaterdag)
-  dagen: WeekmenuDag[]; // altijd 9 items
+  startDatum: string;
+  dagen: WeekmenuDag[];
   privacy: 'prive' | 'gedeeld' | 'publiek';
   sharedWith?: string[];
   createdAt?: string;
@@ -76,8 +73,8 @@ export type Weekmenu = {
 export type BoodschappenItem = {
   naam: string;
   aantal: number;
-  eenheid?: string; // bv. "g", "ml", "stuks"
-  checked: boolean; // afgevinkt/in de kar?
+  eenheid?: string;
+  checked: boolean;
 };
 
 // 7. Boodschappenlijst
@@ -93,18 +90,16 @@ export type BoodschappenLijst = {
   updatedAt?: string;
 };
 
-// 8. Groep (voor gedeelde recepten, weekmenu's, etc.)
-
+// 8. Groep
 export type Groep = {
   id: string;
   naam: string;
-  leden: string[]; // userId's
-  eigenaar: string; // userId van de eigenaar/beheerder
-  aangemaaktOp: string; // of Firestore Timestamp
+  leden: string[];
+  eigenaar: string;
+  aangemaaktOp: string;
 };
 
-// Boodschapenlijst
-
+// Boodschappenlijst
 export type ShoppingItem = {
   id: string;
   name: string;
@@ -112,10 +107,15 @@ export type ShoppingItem = {
   checked: boolean;
   urgent?: boolean;
   promo?: boolean;
-  // Optionele categorie voor sortering en weergave
   category?: ShoppingCategory;
   createdAt: number;
 };
 
-// Vaste categorieën voor boodschappen (uitbreidbaar indien nodig)
 export type ShoppingCategory = 'Groente' | 'Fruit' | 'Vlees' | 'Diepvries';
+
+export const SHOPPING_CATEGORIES: ShoppingCategory[] = [
+  'Groente',
+  'Fruit',
+  'Vlees',
+  'Diepvries',
+];

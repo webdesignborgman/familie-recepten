@@ -3,7 +3,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ShoppingItem, ShoppingCategory } from '@/types';
+import { ShoppingItem, ShoppingCategory, SHOPPING_CATEGORIES } from '@/types';
 import { doc, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -26,10 +26,9 @@ export function ShoppingListItems({ groupId }: Props) {
   }, [groupId]);
 
   // Sorteer op vaste categorie volgorde, daarna alfabetisch, en zet afgevinkte onderaan
-  const categoryOrder: ShoppingCategory[] = ['Groente', 'Fruit', 'Vlees', 'Diepvries'];
   function categoryRank(cat?: ShoppingCategory) {
     if (!cat) return 999; // alles zonder categorie onderaan de niet-afgevinkte groep
-    const idx = categoryOrder.indexOf(cat);
+    const idx = SHOPPING_CATEGORIES.indexOf(cat);
     return idx === -1 ? 998 : idx; // onbekend (zou niet moeten) vlak boven 'geen'
   }
 
@@ -59,7 +58,12 @@ export function ShoppingListItems({ groupId }: Props) {
     });
   }
 
-  async function editItem(item: ShoppingItem, newName: string, newQuantity?: string) {
+  async function editItem(
+    item: ShoppingItem,
+    newName: string,
+    newQuantity?: string,
+    newCategory?: ShoppingCategory | ''
+  ) {
     const updated: ShoppingItem = {
       ...item,
       name: newName,
@@ -71,6 +75,12 @@ export function ShoppingListItems({ groupId }: Props) {
     } else {
       // Explicitly remove quantity if it exists
       delete updated.quantity;
+    }
+
+    if (newCategory) {
+      updated.category = newCategory;
+    } else {
+      delete updated.category;
     }
 
     await updateDoc(doc(db, 'shoppingLists', groupId), {
@@ -125,7 +135,9 @@ export function ShoppingListItems({ groupId }: Props) {
                 item={item}
                 onToggleCheck={() => toggleCheck(item)}
                 onDelete={() => remove(item)}
-                onEdit={(newName, newQuantity) => editItem(item, newName, newQuantity)}
+                onEdit={(newName, newQuantity, newCategory) =>
+                  editItem(item, newName, newQuantity, newCategory)
+                }
               />
             </motion.li>
           ))}
